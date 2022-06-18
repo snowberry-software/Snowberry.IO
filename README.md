@@ -1,4 +1,5 @@
 [![License](https://img.shields.io/github/license/snowberry-software/Snowberry.IO)](https://github.com/snowberry-software/Snowberry.IO/blob/master/LICENSE)
+[![NuGet Version](https://img.shields.io/nuget/v/Snowberry.IO.svg?logo=nuget)](https://www.nuget.org/packages/Snowberry.IO/)
 
 Binary reader and writer that supports different endian types.
 
