@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Snowberry.IO.Reader.Interfaces;
 using Snowberry.IO.Utils;
+using static Snowberry.IO.Utils.Win32Helper;
 
 namespace Snowberry.IO.Reader;
 
@@ -18,6 +19,31 @@ public class Win32ProcessReader : BaseEndianReader
 {
     protected long _position;
     private readonly IntPtr _processHandle;
+
+    /// <summary>
+    /// Creates a new reader for the process.
+    /// </summary>
+    /// <param name="pid">The id of the process.</param>
+    /// <param name="startPosition">The default position that will be used for <see cref="Position"/>.</param>
+    /// <param name="analyzer">The optional analyzer instance.</param>
+    public Win32ProcessReader(int pid, long startPosition, Analyzer? analyzer = null, uint accessFlags = (uint)ProcessAccess.PROCESS_VM_READ) : base(analyzer)
+    {
+        _processHandle = Win32Helper.OpenProcess(accessFlags, false, pid);
+        _position = startPosition;
+        analyzer?.Initialize(this);
+    }
+    /// <summary>
+    /// Creates a new reader for the process.
+    /// </summary>
+    /// <param name="handle">The handle of the process.</param>
+    /// <param name="startPosition">The default position that will be used for <see cref="Position"/>.</param>
+    /// <param name="analyzer">The optional analyzer instance.</param>
+    public Win32ProcessReader(IntPtr handle, long startPosition, Analyzer? analyzer = null) : base(analyzer)
+    {
+        _processHandle = handle;
+        _position = startPosition;
+        analyzer?.Initialize(this);
+    }
 
     /// <inheritdoc/>
     protected override int InternalReadBytes(byte[] inBuffer, int offset, int byteCount)
