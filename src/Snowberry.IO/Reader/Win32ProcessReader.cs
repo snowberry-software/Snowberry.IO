@@ -1,0 +1,143 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Versioning;
+using System.Text;
+using System.Threading.Tasks;
+using Snowberry.IO.Reader.Interfaces;
+using Snowberry.IO.Utils;
+
+namespace Snowberry.IO.Reader;
+
+/// <summary>
+/// Used for reading memory from a windows process.
+/// </summary>
+/// <remarks>String operations may not work (except <see cref="IEndianReader.ReadCString"/>).</remarks>
+[SupportedOSPlatform("windows")]
+public class Win32ProcessReader : BaseEndianReader
+{
+    protected long _position;
+    private readonly IntPtr _processHandle;
+
+    /// <inheritdoc/>
+    protected override int InternalReadBytes(byte[] inBuffer, int offset, int byteCount)
+    {
+        uint lpflOldProtect = 0u;
+        int read = 0;
+
+        // Update protection on memory region
+        // https://docs.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
+        // -> 0x2 -> PAGE_READONLY
+        Win32Helper.VirtualProtectEx(_processHandle, _position, new((uint)byteCount), 0x2, ref lpflOldProtect);
+
+        // Read into buffer
+        if (!Win32Helper.ReadProcessMemory(_processHandle, _position, inBuffer, byteCount, ref read))
+            return 0;
+
+        // Reset memory region protection
+        Win32Helper.VirtualProtectEx(_processHandle, _position, new((uint)byteCount), lpflOldProtect, ref lpflOldProtect);
+
+        _position += byteCount;
+        Analyzer?.AnalyzeReadBytes(this, inBuffer, byteCount, 0);
+
+        return byteCount;
+    }
+
+    /// <inheritdoc/>
+    /// <exception cref="NotImplementedException"></exception>
+    public override void CopyTo(Stream destination)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc/>
+    /// <exception cref="NotImplementedException"></exception>
+    public override void CopyTo(Stream destination, int length, int bufferSize = 81920)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Inject dynamic library.
+    /// </summary>
+    /// <param name="filePath">The full path of the dynamic library to inject.</param>
+    /// <returns>Whether the dynamic library got successfully injected.</returns>
+    public bool InjectDLL(string filePath)
+    {
+        ArgumentNullException.ThrowIfNull(filePath);
+
+        filePath = Path.GetFullPath(filePath);
+
+        nint loadLibraryFunction = Win32Helper.GetProcAddress(Win32Helper.GetModuleHandle("kernel32.dll"), "LoadLibraryA");
+
+        if (loadLibraryFunction == IntPtr.Zero)
+            return false;
+
+        // https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualallocex
+        const int MEM_COMMIT = 0x00001000;
+        const int MEM_RESERVE = 0x00002000;
+
+        // https://docs.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
+        const int PAGE_EXECUTE_READWRITE = 0x40;
+
+        // Allocate region to store the DLL name
+        nint libNameAddress = Win32Helper.VirtualAllocEx(_processHandle, IntPtr.Zero, (uint)filePath.Length, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+
+        // Check if bytes were allocated
+        if (libNameAddress == IntPtr.Zero)
+            return false;
+
+        // Get file path as byte array
+        byte[] dllFullPath = Encoding.ASCII.GetBytes(filePath);
+
+        // Write DLL full path
+        if (!Win32Helper.WriteProcessMemory(_processHandle, libNameAddress, dllFullPath, (uint)dllFullPath.Length, out _))
+            return false;
+
+        // Create thread that will call LoadLibraryA with the library name address as argument
+        return Win32Helper.CreateRemoteThread(_processHandle, IntPtr.Zero, IntPtr.Zero, loadLibraryFunction, libNameAddress, 0, IntPtr.Zero) != IntPtr.Zero;
+    }
+
+    /// <inheritdoc />
+    public override string ReadCString()
+    {
+        long stringPointerPos = ReadLong();
+        long oldPosition = Position;
+
+        Position = stringPointerPos;
+
+        base.ReadCString();
+
+        Position = oldPosition;
+        return _stringBuilder.ToString();
+    }
+
+    /// <inheritdoc/>
+    public override void Dispose()
+    {
+        GC.SuppressFinalize(this);
+
+        _ = Win32Helper.CloseHandle(_processHandle);
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>Will always return <see langword="0"/>.</remarks>
+    public override long Length => 0;
+
+    /// <inheritdoc/>
+    public override bool CanReadData => _processHandle != IntPtr.Zero;
+
+    /// <inheritdoc/>
+    public override long Position
+    {
+        get => _position;
+        set => _position = value;
+    }
+
+    /// <inheritdoc/>
+    public override long ActualPosition => _position;
+
+    /// <inheritdoc/>
+    /// <remarks>Will always return <see langword="0"/>.</remarks>
+    public override long ActualLength => 0;
+}

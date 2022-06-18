@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/obj": true,
+			"**/.gitattributes": true,
+			"**/bin/**": true,
+			"**/.vs/**": true,
+			"**/.rider/**": true
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-dotnettools.csharp"
+		]
+	}
+}
