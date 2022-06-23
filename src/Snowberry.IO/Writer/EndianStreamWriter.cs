@@ -282,9 +282,9 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    IEndianWriter IEndianWriter.Write(string text)
+    IEndianWriter IEndianWriter.Write(string value)
     {
-        base.Write(text);
+        base.Write(value);
         return this;
     }
 
@@ -315,6 +315,13 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
     IEndianWriter IEndianWriter.Write7BitEncodedInt64(long value)
     {
         Write7BitEncodedInt64(value);
+        return this;
+    }
+
+    /// <inheritdoc/>
+    IEndianWriter IEndianWriter.Write(byte[] buffer)
+    {
+        base.Write(buffer);
         return this;
     }
 

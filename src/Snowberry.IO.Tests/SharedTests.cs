@@ -472,4 +472,21 @@ public class SharedTests
             Assert.Equal(value, x.ReadGuidAt(EndianType.BIG, offset + 16));
         });
     }
+
+    [Fact]
+    private void ReadWrite_ByteArray()
+    {
+        CreateShared((x, _) =>
+        {
+            x.Write(new byte[] { 0x12, 0x13, 0x14 });
+        },
+        (x, _) =>
+        {
+            var array = x.ReadBytes(3);
+
+            Assert.Equal(0x12, array[0]);
+            Assert.Equal(0x13, array[1]);
+            Assert.Equal(0x14, array[2]);
+        });
+    }
 }

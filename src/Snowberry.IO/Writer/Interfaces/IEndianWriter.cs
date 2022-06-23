@@ -11,38 +11,23 @@ namespace Snowberry.IO.Writer.Interfaces;
 /// </summary>
 public interface IEndianWriter : IDisposable
 {
-    /// <summary>
-    /// Writes a 32-bit integer in a compressed format.
-    /// </summary>
-    /// <param name="value">The 32-bit integer to be written.</param>
+    /// <inheritdoc cref="BinaryWriter.Write7BitEncodedInt(int)"/>
     /// <returns>The current writer instance.</returns>
     IEndianWriter Write7BitEncodedInt(int value);
 
-    /// <summary>
-    /// Writes a 64-bit integer in a compressed format.
-    /// </summary>
-    /// <param name="value">The 64-bit integer to be written.</param>
+    /// <inheritdoc cref="BinaryWriter.Write7BitEncodedInt64(long)"/>
     /// <returns>The current writer instance.</returns>
     IEndianWriter Write7BitEncodedInt64(long value);
 
-    /// <summary>
-    /// Writes a length-prefixed string to the current stream in the current encoding.
-    /// </summary>
-    /// <param name="text">The text to write.</param>
+    /// <inheritdoc cref="BinaryWriter.Write(string)"/>
     /// <returns>The current writer instance.</returns>
-    IEndianWriter Write(string text);
+    IEndianWriter Write(string value);
 
-    /// <summary>
-    /// Writes a <see cref="byte" />.
-    /// </summary>
-    /// <param name="value">The value.</param>
+    /// <inheritdoc cref="BinaryWriter.Write(byte)"/>
     /// <returns>The current writer instance.</returns>
     IEndianWriter Write(byte value);
 
-    /// <summary>
-    /// Writes a <see cref="sbyte" />.
-    /// </summary>
-    /// <param name="value">The value.</param>
+    /// <inheritdoc cref="BinaryWriter.Write(sbyte)"/>
     /// <returns>The current writer instance.</returns>
     IEndianWriter Write(sbyte value);
 
@@ -161,6 +146,10 @@ public interface IEndianWriter : IDisposable
     /// <param name="alignment">The padding's alignment.</param>
     /// <returns>The current writer instance.</returns>
     IEndianWriter WritePadding(byte alignment);
+
+    /// <inheritdoc cref="BinaryWriter.Write(byte[])"/>
+    /// <returns>The current writer instance.</returns>
+    IEndianWriter Write(byte[] buffer);
 
     /// <summary>
     /// The current position of the writer.
