@@ -158,6 +158,8 @@ public class SharedTests
     {
         const int offset = 20;
 
+        //((EndianStreamWriter)null).Write((byte)22);
+
         CreateShared((x, _) =>
         {
             x.Write(value);

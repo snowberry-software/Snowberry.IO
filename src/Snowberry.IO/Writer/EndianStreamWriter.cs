@@ -259,6 +259,27 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
         return this;
     }
 
+    // NOTE(VNC):
+    // 
+    // It will always use the `Write(short, EndianType)` method when using the `EndianStreamWriter` type directly to write a single byte,
+    // even when directly casting the parameter to a byte.
+    // This seems to fix the issue.
+    //
+
+    /// <inheritdoc cref="BinaryWriter.Write(byte)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public new void Write(byte value)
+    {
+        base.Write(value);
+    }
+
+    /// <inheritdoc cref="BinaryWriter.Write(sbyte)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public new void Write(sbyte value)
+    {
+        base.Write(value);
+    }
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IEndianWriter IEndianWriter.Write(string text)
