@@ -128,6 +128,7 @@ public class SharedTests
         CreateShared((x, _) =>
         {
             x.Write(value);
+            Assert.Equal(sizeof(sbyte), x.Length);
         },
         (x, _) =>
         {
@@ -143,6 +144,7 @@ public class SharedTests
         CreateShared((x, _) =>
         {
             x.Write(value);
+            Assert.Equal(sizeof(byte), x.Length);
         },
         (x, _) =>
         {
