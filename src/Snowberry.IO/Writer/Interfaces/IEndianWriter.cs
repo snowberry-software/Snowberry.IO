@@ -157,6 +157,11 @@ public interface IEndianWriter : IDisposable
     long Position { get; set; }
 
     /// <summary>
+    /// The length of the stream.
+    /// </summary>
+    long Length { get; }
+
+    /// <summary>
     /// The encoding that will be used.
     /// </summary>
     Encoding Encoding { get; }

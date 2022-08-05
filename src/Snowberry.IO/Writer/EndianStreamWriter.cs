@@ -333,5 +333,11 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
     }
 
     /// <inheritdoc/>
+    public long Length
+    {
+        get => BaseStream.Length;
+    }
+
+    /// <inheritdoc/>
     public Encoding Encoding => _encoding;
 }
