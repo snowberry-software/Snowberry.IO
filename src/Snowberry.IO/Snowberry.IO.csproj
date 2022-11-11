@@ -13,8 +13,8 @@
 		<Authors>Snowberry Software</Authors>
 		<Description>Binary reader and writer that supports different endian types.</Description>
 
-		<AssemblyVersion>1.0.0.4</AssemblyVersion>
-		<VersionPrefix>1.0.4</VersionPrefix>
+		<AssemblyVersion>1.0.0.5</AssemblyVersion>
+		<VersionPrefix>1.0.5</VersionPrefix>
 
 		<IsPackable>true</IsPackable>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
