@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Versioning;
+﻿using System.Runtime.Versioning;
 using System.Text;
-using System.Threading.Tasks;
 using Snowberry.IO.Reader.Interfaces;
 using Snowberry.IO.Utils;
 using static Snowberry.IO.Utils.Win32Helper;
