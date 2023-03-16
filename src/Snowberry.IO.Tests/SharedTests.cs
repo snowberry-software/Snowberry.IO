@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 using Snowberry.IO.Extensions;
-using Snowberry.IO.Reader;
 using Snowberry.IO.Reader.Interfaces;
-using Snowberry.IO.Writer;
 using Snowberry.IO.Writer.Interfaces;
 using Xunit;
 
@@ -484,7 +478,7 @@ public class SharedTests
         },
         (x, _) =>
         {
-            var array = x.ReadBytes(3);
+            byte[] array = x.ReadBytes(3);
 
             Assert.Equal(0x12, array[0]);
             Assert.Equal(0x13, array[1]);
