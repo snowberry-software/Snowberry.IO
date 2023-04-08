@@ -148,6 +148,13 @@ public interface IEndianWriter : IDisposable
     IEndianWriter Write(byte[] buffer);
 
     /// <summary>
+    /// Writes a one-byte <see cref="Boolean"/> value.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The current writer instance.</returns>
+    IEndianWriter Write(bool value);
+
+    /// <summary>
     /// The current position of the writer.
     /// </summary>
     long Position { get; set; }
