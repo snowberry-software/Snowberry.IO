@@ -322,6 +322,13 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
     }
 
     /// <inheritdoc/>
+    IEndianWriter IEndianWriter.Write(bool value)
+    {
+        base.Write(value);
+        return this;
+    }
+
+    /// <inheritdoc/>
     public long Position
     {
         get => BaseStream.Position;

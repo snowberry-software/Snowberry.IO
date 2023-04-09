@@ -154,7 +154,7 @@ public static class ReaderExtensions
         pattern = pattern.Replace(" ", "").Trim();
 
         if (pattern.StartsWith("?"))
-            throw new("Pattern must start with a known byte!");
+            throw new FormatException("Pattern must start with a known byte!");
 
         // Parse current pattern.
         var patternData = new PatternMeta[pattern.Length / 2];
@@ -165,7 +165,7 @@ public static class ReaderExtensions
             patternData[i] = new()
             {
                 IsWildcard = hex == "??",
-                Value = hex != "??" ? byte.Parse(hex, NumberStyles.HexNumber) : (byte)0
+                Value = hex != "??" ? byte.Parse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture) : (byte)0
             };
         }
 

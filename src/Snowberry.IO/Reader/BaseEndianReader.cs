@@ -10,7 +10,7 @@ public abstract class BaseEndianReader : IEndianReader
 
     protected byte[] _buffer;
 
-    protected long _viewOffset = 0;
+    protected long _viewOffset;
     protected bool _isRegionViewEnabled;
 
     protected readonly Decoder _decoder;

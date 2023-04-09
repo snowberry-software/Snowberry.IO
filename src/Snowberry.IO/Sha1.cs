@@ -90,10 +90,10 @@ public struct Sha1 : IEquatable<Sha1>
         int offset = 0;
         for (int i = 0; i < 5; i++)
         {
-            byte b0 = byte.Parse(span.Slice(offset + 0, 2), NumberStyles.AllowHexSpecifier);
-            byte b1 = byte.Parse(span.Slice(offset + 2, 2), NumberStyles.AllowHexSpecifier);
-            byte b2 = byte.Parse(span.Slice(offset + 4, 2), NumberStyles.AllowHexSpecifier);
-            byte b3 = byte.Parse(span.Slice(offset + 6, 2), NumberStyles.AllowHexSpecifier);
+            byte b0 = byte.Parse(span.Slice(offset + 0, 2), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
+            byte b1 = byte.Parse(span.Slice(offset + 2, 2), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
+            byte b2 = byte.Parse(span.Slice(offset + 4, 2), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
+            byte b3 = byte.Parse(span.Slice(offset + 6, 2), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
 
             comps[i] = (uint)(b0 | (b1 << 8) | (b2 << 16) | (b3 << 24));
 
@@ -208,10 +208,10 @@ public struct Sha1 : IEquatable<Sha1>
         for (int i = 0; i < 5; i++)
         {
             output.Append(string.Concat(
-                ((byte)(components[i] & 0xFF)).ToString("X2"),
-                ((byte)(components[i] >> 0x8)).ToString("X2"),
-                ((byte)(components[i] >> 0x10)).ToString("X2"),
-                ((byte)(components[i] >> 0x18)).ToString("X2")
+                ((byte)(components[i] & 0xFF)).ToString("X2", CultureInfo.InvariantCulture),
+                ((byte)(components[i] >> 0x8)).ToString("X2", CultureInfo.InvariantCulture),
+                ((byte)(components[i] >> 0x10)).ToString("X2", CultureInfo.InvariantCulture),
+                ((byte)(components[i] >> 0x18)).ToString("X2", CultureInfo.InvariantCulture)
             ));
         }
 
