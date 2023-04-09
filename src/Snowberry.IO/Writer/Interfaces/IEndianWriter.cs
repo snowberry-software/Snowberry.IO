@@ -148,7 +148,7 @@ public interface IEndianWriter : IDisposable
     IEndianWriter Write(byte[] buffer);
 
     /// <summary>
-    /// Writes a one-byte <see cref="Boolean"/> value.
+    /// Writes a one-byte <see cref="bool"/> value.
     /// </summary>
     /// <param name="value">The value.</param>
     /// <returns>The current writer instance.</returns>
