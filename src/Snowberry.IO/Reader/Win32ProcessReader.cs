@@ -1,6 +1,6 @@
 ﻿using System.Runtime.Versioning;
 using System.Text;
-using Snowberry.IO.Reader.Interfaces;
+using Snowberry.IO.Common.Reader;
 using Snowberry.IO.Utils;
 using static Snowberry.IO.Utils.Win32Helper;
 
@@ -24,7 +24,7 @@ public class Win32ProcessReader : BaseEndianReader
     /// <param name="analyzer">The optional analyzer instance.</param>
     public Win32ProcessReader(int pid, long startPosition, Analyzer? analyzer = null, uint accessFlags = (uint)ProcessAccess.PROCESS_VM_READ) : base(analyzer)
     {
-        _processHandle = Win32Helper.OpenProcess(accessFlags, false, pid);
+        _processHandle = OpenProcess(accessFlags, false, pid);
         _position = startPosition;
         analyzer?.Initialize(this);
     }
@@ -50,14 +50,14 @@ public class Win32ProcessReader : BaseEndianReader
         // Update protection on memory region
         // https://docs.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
         // -> 0x2 -> PAGE_READONLY
-        Win32Helper.VirtualProtectEx(_processHandle, _position, new((uint)byteCount), 0x2, ref lpflOldProtect);
+        VirtualProtectEx(_processHandle, _position, new((uint)byteCount), 0x2, ref lpflOldProtect);
 
         // Read into buffer
-        if (!Win32Helper.ReadProcessMemory(_processHandle, _position, inBuffer, byteCount, ref read))
+        if (!ReadProcessMemory(_processHandle, _position, inBuffer, byteCount, ref read))
             return 0;
 
         // Reset memory region protection
-        Win32Helper.VirtualProtectEx(_processHandle, _position, new((uint)byteCount), lpflOldProtect, ref lpflOldProtect);
+        VirtualProtectEx(_processHandle, _position, new((uint)byteCount), lpflOldProtect, ref lpflOldProtect);
 
         _position += byteCount;
         Analyzer?.AnalyzeReadBytes(this, inBuffer, byteCount, 0);
@@ -90,7 +90,7 @@ public class Win32ProcessReader : BaseEndianReader
 
         filePath = Path.GetFullPath(filePath);
 
-        nint loadLibraryFunction = Win32Helper.GetProcAddress(Win32Helper.GetModuleHandle("kernel32.dll"), "LoadLibraryA");
+        nint loadLibraryFunction = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
 
         if (loadLibraryFunction == IntPtr.Zero)
             return false;
@@ -103,7 +103,7 @@ public class Win32ProcessReader : BaseEndianReader
         const int PAGE_EXECUTE_READWRITE = 0x40;
 
         // Allocate region to store the DLL name
-        nint libNameAddress = Win32Helper.VirtualAllocEx(_processHandle, IntPtr.Zero, (uint)filePath.Length, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+        nint libNameAddress = VirtualAllocEx(_processHandle, IntPtr.Zero, (uint)filePath.Length, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 
         // Check if bytes were allocated
         if (libNameAddress == IntPtr.Zero)
@@ -113,11 +113,11 @@ public class Win32ProcessReader : BaseEndianReader
         byte[] dllFullPath = Encoding.ASCII.GetBytes(filePath);
 
         // Write DLL full path
-        if (!Win32Helper.WriteProcessMemory(_processHandle, libNameAddress, dllFullPath, (uint)dllFullPath.Length, out _))
+        if (!WriteProcessMemory(_processHandle, libNameAddress, dllFullPath, (uint)dllFullPath.Length, out _))
             return false;
 
         // Create thread that will call LoadLibraryA with the library name address as argument
-        return Win32Helper.CreateRemoteThread(_processHandle, IntPtr.Zero, IntPtr.Zero, loadLibraryFunction, libNameAddress, 0, IntPtr.Zero) != IntPtr.Zero;
+        return CreateRemoteThread(_processHandle, IntPtr.Zero, IntPtr.Zero, loadLibraryFunction, libNameAddress, 0, IntPtr.Zero) != IntPtr.Zero;
     }
 
     /// <inheritdoc />
@@ -139,7 +139,7 @@ public class Win32ProcessReader : BaseEndianReader
     {
         GC.SuppressFinalize(this);
 
-        _ = Win32Helper.CloseHandle(_processHandle);
+        _ = CloseHandle(_processHandle);
     }
 
     /// <inheritdoc/>

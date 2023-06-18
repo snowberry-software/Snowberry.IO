@@ -1,6 +1,7 @@
 ﻿using Snowberry.IO.Extensions;
 using Snowberry.IO.Reader;
-using Snowberry.IO.Reader.Interfaces;
+using Snowberry.IO.Common;
+using Snowberry.IO.Common.Reader.Interfaces;
 using Snowberry.IO.Writer;
 using Xunit;
 
@@ -11,7 +12,7 @@ public class ReaderTests
     public static Random Random = new();
 
     [Theory]
-    [InlineData(0, IEndianReader.MinBufferSize)]
+    [InlineData(0, BaseEndianReader.MinBufferSize)]
     [InlineData(50, 50)]
     private void EnsureBufferSize(int setValue, int expectedValue)
     {

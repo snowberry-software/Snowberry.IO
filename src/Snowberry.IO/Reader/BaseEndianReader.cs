@@ -1,11 +1,18 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
-using Snowberry.IO.Reader.Interfaces;
+using Snowberry.IO.Common;
+using Snowberry.IO.Common.Reader.Interfaces;
+using Snowberry.IO.Common.Reader;
 
 namespace Snowberry.IO.Reader;
 
 public abstract class BaseEndianReader : IEndianReader
 {
+    /// <summary>
+    /// The largest data type is the <see cref="Sha1"/> type.
+    /// </summary>
+    public const int MinBufferSize = 20;
+
     protected const int MaxCharBytesSize = 128;
 
     protected byte[] _buffer;
@@ -49,8 +56,8 @@ public abstract class BaseEndianReader : IEndianReader
     {
         ArgumentNullException.ThrowIfNull(encoding);
 
-        if (bufferSize < IEndianReader.MinBufferSize)
-            bufferSize = IEndianReader.MinBufferSize;
+        if (bufferSize < MinBufferSize)
+            bufferSize = MinBufferSize;
 
         _buffer = new byte[bufferSize];
         Analyzer = analyzer;

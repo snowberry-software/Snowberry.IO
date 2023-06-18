@@ -1,7 +1,8 @@
 ﻿using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Snowberry.IO.Reader.Interfaces;
+using Snowberry.IO.Common;
+using Snowberry.IO.Common.Reader.Interfaces;
 
 namespace Snowberry.IO.Extensions;
 
