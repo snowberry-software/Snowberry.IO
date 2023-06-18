@@ -10,4 +10,6 @@ namespace _build;
 partial class Build
 {
     private static AbsolutePath SourceDirectory => RootDirectory / "src";
+
+    private static AbsolutePath ArtifactsDirectory => RootDirectory / "Artifacts";
 }

@@ -18,6 +18,8 @@
 
         <RepositoryType>git</RepositoryType>
         <RepositoryUrl>https://github.com/snowberry-software/Snowberry.IO.git</RepositoryUrl>
+        
+        <NukeMarkPackable>true</NukeMarkPackable>
     </PropertyGroup>
 
 

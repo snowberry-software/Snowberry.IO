@@ -80,10 +80,10 @@ partial class Build : NukeBuild
     }
 
     Target Clean => _ => _
-        .Before(Restore)
         .Executes(() =>
         {
             SourceDirectory.GlobDirectories("**/bin", "**/obj").ForEach(x => x.DeleteDirectory());
+            ArtifactsDirectory.CreateOrCleanDirectory();
         });
 
     Target Restore => _ => _
@@ -114,4 +114,53 @@ partial class Build : NukeBuild
                     .SetProjectFile(test));
             }
         });
+
+    Target Pack => _ => _
+       .DependsOn(Test)
+       .Executes(() =>
+       {
+           foreach (var project in Solution.AllProjects)
+           {
+               if (string.IsNullOrWhiteSpace(project.GetProperty("NukeMarkPackable")))
+                   continue;
+
+               Log.Information("Packing {name}...", project.Name);
+               DotNetPack(x => SetDefaultOptions(x)
+                    .SetProject(project)
+                    .SetOutputDirectory(ArtifactsDirectory));
+           }
+       });
+
+    Target DeployNuGet => _ => _
+       .DependsOn(Test)
+       .Executes(() =>
+       {
+           if (Configuration != Configuration.Release)
+           {
+               const string message = "Can only deploy Release config!";
+               Log.Fatal(message);
+               throw new InvalidOperationException(message);
+           }
+
+           string? apiKey = Environment.GetEnvironmentVariable("NUGET_KEY");
+           if (string.IsNullOrWhiteSpace(apiKey))
+           {
+               const string message = "No NuGet API key found!";
+               Log.Fatal(message);
+               throw new InvalidOperationException(message);
+           }
+
+           DotNetNuGetPush(x => x.SetApiKey(apiKey));
+
+           foreach (var project in Solution.AllProjects)
+           {
+               if (string.IsNullOrWhiteSpace(project.GetProperty("NukeMarkPackable")))
+                   continue;
+
+               Log.Information("Deploying {name}...", project.Name);
+               DotNetPack(x => SetDefaultOptions(x)
+                    .SetProject(project)
+                    .SetOutputDirectory(ArtifactsDirectory));
+           }
+       });
 }

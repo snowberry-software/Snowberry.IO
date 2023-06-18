@@ -74,6 +74,7 @@
             "enum": [
               "Clean",
               "Compile",
+              "Pack",
               "Restore",
               "Test"
             ]
@@ -91,6 +92,7 @@
             "enum": [
               "Clean",
               "Compile",
+              "Pack",
               "Restore",
               "Test"
             ]

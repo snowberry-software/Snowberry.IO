@@ -9,18 +9,26 @@ namespace _build;
 
 partial class Build
 {
-    public DotNetBuildSettings SetDefaultOptions(DotNetBuildSettings settings)
+    private DotNetBuildSettings SetDefaultOptions(DotNetBuildSettings settings)
     {
         return settings
-            .SetVerbosity(DotNetVerbosity.Normal)
+            .SetVerbosity(DotNetVerbosity.Quiet)
             .SetProjectFile(Solution)
             .SetConfiguration(Configuration)
             .EnableNoLogo()
             .SetWarningLevel(Configuration == Configuration.Release ? 0 : null);
     }
 
-    public DotNetTestSettings SetDefaultOptions(DotNetTestSettings settings) => settings
-                    .SetVerbosity(DotNetVerbosity.Normal)
+    private DotNetPackSettings SetDefaultOptions(DotNetPackSettings settings)
+    {
+        return settings.SetVerbosity(DotNetVerbosity.Quiet)
+            .SetConfiguration(Configuration)
+            .EnableNoLogo()
+            .SetWarningLevel(Configuration == Configuration.Release ? 0 : null);
+    }
+
+    private DotNetTestSettings SetDefaultOptions(DotNetTestSettings settings) => settings
+                    .SetVerbosity(DotNetVerbosity.Quiet)
                     .SetConfiguration(Configuration)
                     .EnableNoBuild()
                     .EnableNoRestore();
