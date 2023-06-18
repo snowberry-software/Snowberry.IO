@@ -1,21 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net7.0;net6.0</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
+		<TargetFrameworks>net7.0;net6.0;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<AnalysisLevel>7.0-all</AnalysisLevel>
-		<Platforms>AnyCPU;x64</Platforms>
+		<LangVersion>latest</LangVersion>
 
 		<!-- Package -->
-		<Description>Binary reader and writer that supports different endian types.</Description>
+		<Description>This package includes common utilities that are utilized by the full package.</Description>
 
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="..\..\README.md">
+		<None Include="README.md">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>

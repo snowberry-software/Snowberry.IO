@@ -32,7 +32,7 @@ public abstract class BaseEndianReader : IEndianReader
     /// </remarks>
     /// <param name="analyzer">The optional analyzer instance.</param>
     /// <param name="bufferSize">The size of the internal buffer.</param>
-    public BaseEndianReader(Analyzer? analyzer = null, int bufferSize = 0) : this(analyzer, bufferSize, Encoding.Default)
+    protected BaseEndianReader(Analyzer? analyzer = null, int bufferSize = 0) : this(analyzer, bufferSize, Encoding.Default)
     {
     }
 
@@ -45,7 +45,7 @@ public abstract class BaseEndianReader : IEndianReader
     /// <param name="analyzer">The optional analyzer instance.</param>
     /// <param name="bufferSize">The size of the internal buffer.</param>
     /// <param name="encoding">The encoding to use.</param>
-    public BaseEndianReader(Analyzer? analyzer, int bufferSize, Encoding encoding)
+    protected BaseEndianReader(Analyzer? analyzer, int bufferSize, Encoding encoding)
     {
         ArgumentNullException.ThrowIfNull(encoding);
 
@@ -214,22 +214,6 @@ public abstract class BaseEndianReader : IEndianReader
 
                 break;
             }
-
-            //int i;
-            //for (i = 0; i < size; i++)
-            //{
-            //    int value = ReadByteSafe();
-
-            //    if (value is 0 or -1)
-            //        break;
-
-            //    singleByteSpan[0] = (byte)value;
-            //    AppendCharacters(decoder, singleByteSpan, decodedCharSpan, out int decodedCharCount);
-
-            //    // NOTE(VNC): Avoid branches...
-            //    if (decodedCharCount != 0)
-            //        i -= _encoding.GetByteCount(decodedCharSpan) * (decodedCharCount - 1);
-            //}
 
         } while (size > 0);
 

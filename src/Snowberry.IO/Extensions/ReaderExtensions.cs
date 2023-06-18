@@ -144,7 +144,7 @@ public static class ReaderExtensions
     /// <param name="maxCount">The maximum amount of offsets.</param>
     /// <param name="maxAddress">The maximum position that won't be exceeded.</param>
     /// <returns>The offsets/addresses for the found signatures.</returns>
-    public static unsafe List<long> ScanSignatures(this IEndianReader reader, string pattern, int maxCount, long maxAddress)
+    public static unsafe IList<long> ScanSignatures(this IEndianReader reader, string pattern, int maxCount, long maxAddress)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(pattern);

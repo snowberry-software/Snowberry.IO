@@ -1,0 +1,50 @@
+<Project>
+
+    <PropertyGroup>
+        <Authors>Snowberry Software</Authors>
+        <AssemblyVersion>1.0.0.6</AssemblyVersion>
+        <VersionPrefix>1.0.6</VersionPrefix>
+
+        <IsPackable>true</IsPackable>
+
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageTags>binary reader, binary writer, endian, big, little, binary, io</PackageTags>
+
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <IncludeBuildOutput>true</IncludeBuildOutput>
+        <Copyright>Copyright © 2023 Snowberry Software</Copyright>
+        <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+        <PackageProjectUrl>https://github.com/snowberry-software/Snowberry.IO</PackageProjectUrl>
+
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/snowberry-software/Snowberry.IO.git</RepositoryUrl>
+    </PropertyGroup>
+
+
+    <PropertyGroup>
+        <!-- Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+
+        <!-- Embed source files that are not tracked by the source control manager in the PDB -->
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+        <!-- Recommended: Embed symbols containing Source Link in the main file (exe/dll) -->
+        <DebugType>embedded</DebugType>
+    </PropertyGroup>
+
+    <!-- Deterministic Builds -->
+    <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(TF_BUILD)' == 'true'">
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
+    <!-- SourceLink -->
+    <ItemGroup>
+        <!-- For GitHub -->
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+    </ItemGroup>
+
+</Project>

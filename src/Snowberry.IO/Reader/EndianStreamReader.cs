@@ -102,7 +102,7 @@ public class EndianStreamReader : BaseEndianReader
             if (IsRegionViewEnabled)
                 return RegionView.Size;
 
-            return _stream?.Length ?? 0;
+            return Stream?.Length ?? 0;
         }
     }
 
