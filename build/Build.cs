@@ -132,7 +132,7 @@ partial class Build : NukeBuild
        });
 
     Target DeployNuGet => _ => _
-       .DependsOn(Test)
+       .DependsOn(Pack)
        .Executes(() =>
        {
            if (Configuration != Configuration.Release)
@@ -150,17 +150,9 @@ partial class Build : NukeBuild
                throw new InvalidOperationException(message);
            }
 
-           DotNetNuGetPush(x => x.SetApiKey(apiKey));
-
-           foreach (var project in Solution.AllProjects)
-           {
-               if (string.IsNullOrWhiteSpace(project.GetProperty("NukeMarkPackable")))
-                   continue;
-
-               Log.Information("Deploying {name}...", project.Name);
-               DotNetPack(x => SetDefaultOptions(x)
-                    .SetProject(project)
-                    .SetOutputDirectory(ArtifactsDirectory));
-           }
+           DotNetNuGetPush(x => x.SetApiKey(apiKey)
+                    .SetTargetPath(ArtifactsDirectory / "*.nupkg")
+                    .SetSource("https://api.nuget.org/v3/index.json")
+                    .EnableSkipDuplicate());
        });
 }
