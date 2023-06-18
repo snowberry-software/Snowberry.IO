@@ -1,12 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net7.0;net6.0;netstandard2.0;net48</TargetFrameworks>
+		<TargetFrameworks>net7.0;net6.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>disable</ImplicitUsings>
+		<Platforms>AnyCPU;x64</Platforms>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Snowberry.IO.Common" Version="1.0.6" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Snowberry.IO.SourceGenerator\Snowberry.IO.SourceGenerator.csproj"

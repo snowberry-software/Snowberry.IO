@@ -74,6 +74,7 @@
             "enum": [
               "Clean",
               "Compile",
+              "DeployNuGet",
               "Pack",
               "Restore",
               "Test"
@@ -92,6 +93,7 @@
             "enum": [
               "Clean",
               "Compile",
+              "DeployNuGet",
               "Pack",
               "Restore",
               "Test"

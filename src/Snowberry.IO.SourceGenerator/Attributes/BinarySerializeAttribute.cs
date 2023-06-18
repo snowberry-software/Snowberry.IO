@@ -19,6 +19,7 @@ internal static class BinarySerializeAttribute
         return $$"""
 
             using System;
+            using Snowberry.IO.Common;
 
             namespace {{c_Namespace}}
             {
@@ -28,12 +29,21 @@ internal static class BinarySerializeAttribute
                 [AttributeUsage(validOn: AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
                 internal sealed class {{c_Name}} : {{nameof(Attribute)}}
                 {
-                    public {{c_Name}}(bool allowBufferedReading)
+                    public {{c_Name}}()
+                    {
+                        AllowBufferedReading = true;
+                        EndianType = EndianType.LITTLE;
+                    }
+
+                    public {{c_Name}}(bool allowBufferedReading, EndianType endianType) : this()
                     {
                         AllowBufferedReading = allowBufferedReading;
+                        EndianType = endianType;
                     }
 
                     public bool AllowBufferedReading { get; set; }
+
+                    public EndianType EndianType { get; set; }
                 }
             }
             """;

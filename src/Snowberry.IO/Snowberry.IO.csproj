@@ -6,7 +6,6 @@
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<AnalysisLevel>7.0-all</AnalysisLevel>
-		<Platforms>AnyCPU;x64</Platforms>
 
 		<!-- Package -->
 		<Description>Binary reader and writer that supports different endian types.</Description>

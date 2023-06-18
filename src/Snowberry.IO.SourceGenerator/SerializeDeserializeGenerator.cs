@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Snowberry.IO.Common;
 using Snowberry.IO.SourceGenerator.Attributes;
 
 namespace Snowberry.IO.SourceGenerator;
@@ -28,6 +29,7 @@ internal partial class SerializeDeserializeGenerator : ISourceGenerator
         if (!Debugger.IsAttached)
             Debugger.Launch();
 #endif
+
         var validDecls = new List<ValidTypeDecl>();
         for (int j = 0; j < receiver.TypeDeclarationSyntaxes.Count; j++)
         {
@@ -43,7 +45,10 @@ internal partial class SerializeDeserializeGenerator : ISourceGenerator
 
             var attributes = typeSymbol.GetAttributes();
 
-            var typeDeclSettings = new TypeDeclSettings(AllowBufferedReading: false);
+            var typeDeclSettings = new TypeDeclSettings(
+                AllowBufferedReading: false,
+                EndianType: EndianType.LITTLE
+            );
 
             bool isValid = false;
             for (int i = 0; i < attributes.Length; i++)
@@ -70,13 +75,17 @@ internal partial class SerializeDeserializeGenerator : ISourceGenerator
                     if (!constant.HasValue)
                         continue;
 
-                    if (constant.Value is not bool allowBufferedReading)
-                        continue;
-
-                    typeDeclSettings = typeDeclSettings with
+                    switch (k)
                     {
-                        AllowBufferedReading = allowBufferedReading
-                    };
+                        case 0:
+                            typeDeclSettings = typeDeclSettings with { AllowBufferedReading = (bool)constant.Value };
+                            break;
+                        case 1:
+                            typeDeclSettings = typeDeclSettings with { EndianType = (EndianType)constant.Value };
+                            break;
+
+                    }
+
                 }
 
                 isValid = true;
@@ -97,9 +106,9 @@ internal partial class SerializeDeserializeGenerator : ISourceGenerator
             }
 
             validDecls.Add(new(
-                typeSymbol.ToString(), 
-                typeSymbol, 
-                typeDeclSyntax, 
+                typeSymbol.ToString(),
+                typeSymbol,
+                typeDeclSyntax,
                 typeDeclSettings));
         }
 
@@ -150,5 +159,6 @@ internal record ValidTypeDecl(
 );
 
 internal record TypeDeclSettings(
-    bool AllowBufferedReading
+    bool AllowBufferedReading,
+    EndianType EndianType
 );
