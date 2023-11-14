@@ -21,7 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Snowberry.IO.Common" Version="1.0.8" />
+        <PackageReference Include="Snowberry.IO.Common" Version="1.0.0.9" />
     </ItemGroup>
 
     <Import Project="../NuGetPackage.props" />
