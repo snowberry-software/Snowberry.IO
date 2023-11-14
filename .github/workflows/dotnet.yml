@@ -40,4 +40,4 @@ jobs:
             7.x
             8.x
       - name: Deploy
-        run: ./build.sh DeployNuGet
+        run: ./build.sh DeployNuGet -Configuration Release
