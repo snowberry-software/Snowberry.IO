@@ -47,6 +47,10 @@
           "type": "boolean",
           "description": "Disables displaying the NUKE logo"
         },
+        "NuGetPackageFilter": {
+          "type": "string",
+          "description": "The optional package filter of the packages that will be deployed"
+        },
         "Partition": {
           "type": "string",
           "description": "Partition to use on CI"

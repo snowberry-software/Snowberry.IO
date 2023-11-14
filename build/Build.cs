@@ -16,6 +16,7 @@ using Nuke.Common.Tools.MSBuild;
 using Serilog;
 using System.Runtime.InteropServices;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
+using System.Drawing;
 
 namespace _build;
 
@@ -44,6 +45,12 @@ partial class Build : NukeBuild
 
         set => _configuration = value;
     }
+
+    [Parameter("The optional package filter of the packages that will be deployed.")]
+    private string NuGetPackageFilter
+    {
+        get; set;
+    } = string.Empty;
 
 #nullable disable
     [Required][GitRepository] private readonly GitRepository GitRepository;
@@ -150,8 +157,10 @@ partial class Build : NukeBuild
                throw new InvalidOperationException(message);
            }
 
+           string filter = string.IsNullOrWhiteSpace(NuGetPackageFilter) ? ArtifactsDirectory / "*.nupkg" : ArtifactsDirectory / NuGetPackageFilter;
+
            DotNetNuGetPush(x => x.SetApiKey(apiKey)
-                    .SetTargetPath(ArtifactsDirectory / "*.nupkg")
+                    .SetTargetPath(filter)
                     .SetSource("https://api.nuget.org/v3/index.json")
                     .EnableSkipDuplicate());
        });
