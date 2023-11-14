@@ -11,15 +11,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dotnet-version: ['8.x', '7.x'] # Specify the .NET versions you want to test against
     steps:
       - uses: actions/checkout@v3
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: ${{ matrix.dotnet-version }}
+          dotnet-version: | 
+            7.x
+            8.x
       - name: Build
         run: ./build.sh Compile
       - name: Test
@@ -27,9 +26,6 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dotnet-version: ['8.x', '7.x'] # Specify the .NET versions you want to test against
     env:
       NUGET_KEY: ${{ secrets.NUGET_KEY }}
     needs: build
@@ -40,6 +36,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: ${{ matrix.dotnet-version }}
+          dotnet-version: |
+            7.x
+            8.x
       - name: Deploy
         run: ./build.sh DeployNuGet
