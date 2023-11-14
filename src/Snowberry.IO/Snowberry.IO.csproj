@@ -1,28 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFrameworks>net7.0;net6.0</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<AnalysisLevel>7.0-all</AnalysisLevel>
+    <PropertyGroup>
+        <TargetFrameworks>net8.0;net7.0;net6.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <AnalysisLevel>7.0-all</AnalysisLevel>
 
-		<!-- Package -->
-		<Description>Binary reader and writer that supports different endian types.</Description>
+        <!-- Package -->
+        <Description>Binary reader and writer that supports different endian types.</Description>
 
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-	</PropertyGroup>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<None Include="..\..\README.md">
-			<Pack>True</Pack>
-			<PackagePath>\</PackagePath>
-		</None>
-	</ItemGroup>
+    <ItemGroup>
+        <None Include="..\..\README.md">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+    </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Snowberry.IO.Common" Version="1.0.6" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Snowberry.IO.Common" Version="1.0.6" />
+    </ItemGroup>
 
-	<Import Project="../NuGetPackage.props" />
+    <Import Project="../NuGetPackage.props" />
 </Project>

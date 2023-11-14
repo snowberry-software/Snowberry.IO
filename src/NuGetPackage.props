@@ -4,8 +4,8 @@
         <Platforms>AnyCPU;x64;x86</Platforms>
 
         <Authors>Snowberry Software</Authors>
-        <AssemblyVersion>1.0.0.6</AssemblyVersion>
-        <VersionPrefix>1.0.6</VersionPrefix>
+        <AssemblyVersion>1.0.0.7</AssemblyVersion>
+        <VersionPrefix>1.0.7</VersionPrefix>
 
         <IsPackable>true</IsPackable>
 
