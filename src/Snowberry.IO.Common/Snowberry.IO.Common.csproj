@@ -11,8 +11,8 @@
         <LangVersion>latest</LangVersion>
 
         <!-- Package -->
-        <AssemblyVersion>1.0.0.8</AssemblyVersion>
-        <VersionPrefix>1.0.8</VersionPrefix>
+        <AssemblyVersion>1.0.0.9</AssemblyVersion>
+        <VersionPrefix>$(AssemblyVersion)</VersionPrefix>
         <Description>This package includes common utilities that are utilized by the full package.</Description>
 
         <PackageReadmeFile>README.md</PackageReadmeFile>
