@@ -52,7 +52,7 @@ public class EndianStreamReader : BaseEndianReader
 
         byte[] buffer = new byte[bufferSize];
         int read;
-        while (length > 0 && (read = Stream.Read(buffer, 0, bufferSize)) > 0)
+        while (length > 0 && (read = Stream.Read(buffer, 0, Math.Min(bufferSize, length))) > 0)
         {
             if (IsRegionViewEnabled)
                 _viewOffset += read;
