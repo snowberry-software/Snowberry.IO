@@ -24,7 +24,6 @@
         <NukeMarkPackable>true</NukeMarkPackable>
     </PropertyGroup>
 
-
     <PropertyGroup>
         <!-- Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
