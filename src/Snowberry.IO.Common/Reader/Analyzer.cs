@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Snowberry.IO.Common.Reader.Interfaces;
+﻿using Snowberry.IO.Common.Reader.Interfaces;
 
 namespace Snowberry.IO.Common.Reader;
 

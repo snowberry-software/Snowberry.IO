@@ -1,7 +1,7 @@
-﻿using Snowberry.IO.Extensions;
+﻿using Snowberry.IO.Common;
+
+using Snowberry.IO.Extensions;
 using Snowberry.IO.Reader;
-using Snowberry.IO.Common;
-using Snowberry.IO.Common.Reader.Interfaces;
 using Snowberry.IO.Writer;
 using Xunit;
 

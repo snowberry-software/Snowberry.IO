@@ -32,11 +32,11 @@ public struct Sha1 : IEquatable<Sha1>
         if (buffer.Length < 20)
             throw new ArgumentException($"{nameof(Sha1)} buffer must be a minimum of {StructSize} bytes in length", nameof(buffer));
 
-        _a = (uint)(buffer[0] | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24);
-        _b = (uint)(buffer[4] | buffer[5] << 8 | buffer[6] << 16 | buffer[7] << 24);
-        _c = (uint)(buffer[8] | buffer[9] << 8 | buffer[10] << 16 | buffer[11] << 24);
-        _d = (uint)(buffer[12] | buffer[13] << 8 | buffer[14] << 16 | buffer[15] << 24);
-        _e = (uint)(buffer[16] | buffer[17] << 8 | buffer[18] << 16 | buffer[19] << 24);
+        _a = (uint)(buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24));
+        _b = (uint)(buffer[4] | (buffer[5] << 8) | (buffer[6] << 16) | (buffer[7] << 24));
+        _c = (uint)(buffer[8] | (buffer[9] << 8) | (buffer[10] << 16) | (buffer[11] << 24));
+        _d = (uint)(buffer[12] | (buffer[13] << 8) | (buffer[14] << 16) | (buffer[15] << 24));
+        _e = (uint)(buffer[16] | (buffer[17] << 8) | (buffer[18] << 16) | (buffer[19] << 24));
     }
 
     /// <summary>
@@ -67,11 +67,11 @@ public struct Sha1 : IEquatable<Sha1>
         if (data.Length < 20)
             throw new ArgumentException($"{nameof(Sha1)} must be a minimum of {StructSize} bytes in length", nameof(data));
 
-        _a = (uint)(data[0] | data[1] << 8 | data[2] << 16 | data[3] << 24);
-        _b = (uint)(data[4] | data[5] << 8 | data[6] << 16 | data[7] << 24);
-        _c = (uint)(data[8] | data[9] << 8 | data[10] << 16 | data[11] << 24);
-        _d = (uint)(data[12] | data[13] << 8 | data[14] << 16 | data[15] << 24);
-        _e = (uint)(data[16] | data[17] << 8 | data[18] << 16 | data[19] << 24);
+        _a = (uint)(data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24));
+        _b = (uint)(data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
+        _c = (uint)(data[8] | (data[9] << 8) | (data[10] << 16) | (data[11] << 24));
+        _d = (uint)(data[12] | (data[13] << 8) | (data[14] << 16) | (data[15] << 24));
+        _e = (uint)(data[16] | (data[17] << 8) | (data[18] << 16) | (data[19] << 24));
     }
 #endif
 
@@ -110,7 +110,7 @@ public struct Sha1 : IEquatable<Sha1>
             byte b2 = byte.Parse(hash.Substring(offset + 4, 2), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
             byte b3 = byte.Parse(hash.Substring(offset + 6, 2), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
 #endif
-            comps[i] = (uint)(b0 | b1 << 8 | b2 << 16 | b3 << 24);
+            comps[i] = (uint)(b0 | (b1 << 8) | (b2 << 16) | (b3 << 24));
 
             offset += 8;
         }
@@ -178,33 +178,33 @@ public struct Sha1 : IEquatable<Sha1>
         {
             // A
             (byte)(_a & 0xFF),
-            (byte)(_a >> 8 & 0xFF),
-            (byte)(_a >> 16 & 0xFF),
-            (byte)(_a >> 24 & 0xFF),
+            (byte)((_a >> 8) & 0xFF),
+            (byte)((_a >> 16) & 0xFF),
+            (byte)((_a >> 24) & 0xFF),
             
             // B
             (byte)(_b & 0xFF),
-            (byte)(_b >> 8 & 0xFF),
-            (byte)(_b >> 16 & 0xFF),
-            (byte)(_b >> 24 & 0xFF),
+            (byte)((_b >> 8) & 0xFF),
+            (byte)((_b >> 16) & 0xFF),
+            (byte)((_b >> 24) & 0xFF),
             
             // C
             (byte)(_c & 0xFF),
-            (byte)(_c >> 8 & 0xFF),
-            (byte)(_c >> 16 & 0xFF),
-            (byte)(_c >> 24 & 0xFF),
+            (byte)((_c >> 8) & 0xFF),
+            (byte)((_c >> 16) & 0xFF),
+            (byte)((_c >> 24) & 0xFF),
             
             // D
             (byte)(_d & 0xFF),
-            (byte)(_d >> 8 & 0xFF),
-            (byte)(_d >> 16 & 0xFF),
-            (byte)(_d >> 24 & 0xFF),
+            (byte)((_d >> 8) & 0xFF),
+            (byte)((_d >> 16) & 0xFF),
+            (byte)((_d >> 24) & 0xFF),
 
             // E
             (byte)(_e & 0xFF),
-            (byte)(_e >> 8 & 0xFF),
-            (byte)(_e >> 16 & 0xFF),
-            (byte)(_e >> 24 & 0xFF)
+            (byte)((_e >> 8) & 0xFF),
+            (byte)((_e >> 16) & 0xFF),
+            (byte)((_e >> 24) & 0xFF)
         };
     }
 

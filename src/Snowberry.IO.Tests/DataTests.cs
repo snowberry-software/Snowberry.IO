@@ -1,7 +1,5 @@
-﻿using Xunit;
-using Snowberry.IO.Common;
-using Snowberry.IO.Common.Reader.Interfaces;
-using Snowberry.IO.Common.Writer.Interfaces;
+﻿using Snowberry.IO.Common;
+using Xunit;
 
 namespace Snowberry.IO.Tests;
 

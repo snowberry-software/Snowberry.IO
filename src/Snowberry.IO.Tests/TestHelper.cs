@@ -1,9 +1,9 @@
 ﻿using System.Text;
-using Snowberry.IO.Reader;
-using Snowberry.IO.Writer;
-using Snowberry.IO.Common;
+
 using Snowberry.IO.Common.Reader.Interfaces;
 using Snowberry.IO.Common.Writer.Interfaces;
+using Snowberry.IO.Reader;
+using Snowberry.IO.Writer;
 
 namespace Snowberry.IO.Tests;
 

@@ -1,7 +1,6 @@
 ﻿using System.Runtime.Versioning;
 using System.Text;
 using Snowberry.IO.Common.Reader;
-using Snowberry.IO.Utils;
 using static Snowberry.IO.Utils.Win32Helper;
 
 namespace Snowberry.IO.Reader;

@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Text;
 using System.IO;
+using System.Text;
 
 namespace Snowberry.IO.Common.Writer.Interfaces;
 

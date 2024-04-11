@@ -1,8 +1,8 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
 using Snowberry.IO.Common;
-using Snowberry.IO.Common.Reader.Interfaces;
 using Snowberry.IO.Common.Reader;
+using Snowberry.IO.Common.Reader.Interfaces;
 
 namespace Snowberry.IO.Reader;
 

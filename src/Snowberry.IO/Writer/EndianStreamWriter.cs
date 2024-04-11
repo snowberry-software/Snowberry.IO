@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
-using Snowberry.IO.Common.Writer.Interfaces;
 using Snowberry.IO.Common;
+using Snowberry.IO.Common.Writer.Interfaces;
 
 namespace Snowberry.IO.Writer;
 

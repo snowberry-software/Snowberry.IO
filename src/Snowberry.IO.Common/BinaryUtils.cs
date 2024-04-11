@@ -21,7 +21,7 @@ public static class BinaryUtils
         // aligned = (offset + (align - 1)) & ~(align - 1)
         //         = (offset + (align - 1)) & -align
         //
-        position = position + (alignment - 1) & -alignment;
+        position = (position + (alignment - 1)) & -alignment;
     }
 
     /// <summary>
@@ -43,6 +43,6 @@ public static class BinaryUtils
         //         = -offset & (align - 1)
         //
 
-        return -position & alignment - 1;
+        return -position & (alignment - 1);
     }
 }

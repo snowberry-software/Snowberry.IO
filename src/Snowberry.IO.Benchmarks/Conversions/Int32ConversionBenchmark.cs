@@ -1,7 +1,6 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Exporters;
 using Snowberry.IO.Common;
-using Snowberry.IO.Common.Reader.Interfaces;
 
 namespace Snowberry.IO.Benchmarks.Conversions;
 
