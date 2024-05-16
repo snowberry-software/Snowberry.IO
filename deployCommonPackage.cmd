@@ -1,1 +1,0 @@
-build.cmd DeployNuGet -Configuration Release -NuGetPackageFilter Snowberry.IO.Common.*.nupkg

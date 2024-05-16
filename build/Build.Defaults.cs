@@ -12,7 +12,7 @@ partial class Build
     private DotNetBuildSettings SetDefaultOptions(DotNetBuildSettings settings)
     {
         return settings
-            .SetVerbosity(DotNetVerbosity.Quiet)
+            .SetVerbosity(DotNetVerbosity.quiet)
             .SetProjectFile(Solution)
             .SetConfiguration(Configuration)
             .EnableNoLogo()
@@ -21,14 +21,14 @@ partial class Build
 
     private DotNetPackSettings SetDefaultOptions(DotNetPackSettings settings)
     {
-        return settings.SetVerbosity(DotNetVerbosity.Quiet)
+        return settings.SetVerbosity(DotNetVerbosity.quiet)
             .SetConfiguration(Configuration)
             .EnableNoLogo()
             .SetWarningLevel(Configuration == Configuration.Release ? 0 : null);
     }
 
     private DotNetTestSettings SetDefaultOptions(DotNetTestSettings settings) => settings
-                    .SetVerbosity(DotNetVerbosity.Quiet)
+                    .SetVerbosity(DotNetVerbosity.quiet)
                     .SetConfiguration(Configuration)
                     .EnableNoBuild()
                     .EnableNoRestore();

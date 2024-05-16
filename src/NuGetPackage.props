@@ -4,7 +4,7 @@
         <Platforms>AnyCPU;x64;x86</Platforms>
 
         <Authors>Snowberry Software</Authors>
-        <AssemblyVersion>1.0.0.11</AssemblyVersion>
+        <AssemblyVersion>2.0.0.0</AssemblyVersion>
         <VersionPrefix>$(AssemblyVersion)</VersionPrefix>
 
         <IsPackable>true</IsPackable>
@@ -14,7 +14,7 @@
 
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <IncludeBuildOutput>true</IncludeBuildOutput>
-        <Copyright>Copyright © 2023 Snowberry Software</Copyright>
+        <Copyright>Copyright © 2024 Snowberry Software</Copyright>
         <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
         <PackageProjectUrl>https://github.com/snowberry-software/Snowberry.IO</PackageProjectUrl>
 
@@ -47,7 +47,7 @@
     <!-- SourceLink -->
     <ItemGroup>
         <!-- For GitHub -->
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
     </ItemGroup>
 
 </Project>

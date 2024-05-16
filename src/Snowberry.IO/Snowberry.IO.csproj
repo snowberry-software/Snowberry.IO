@@ -20,13 +20,9 @@
         </None>
     </ItemGroup>
 
-    <ItemGroup>
-        <PackageReference Include="Snowberry.IO.Common" Version="1.0.0.9" />
-    </ItemGroup>
-
     <Import Project="../NuGetPackage.props" />
 
     <ItemGroup>
-        <PackageReference Update="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+        <ProjectReference Include="..\Snowberry.IO.Common\Snowberry.IO.Common.csproj" />
     </ItemGroup>
 </Project>

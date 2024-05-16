@@ -11,8 +11,6 @@
         <LangVersion>latest</LangVersion>
 
         <!-- Package -->
-        <AssemblyVersion>1.0.0.9</AssemblyVersion>
-        <VersionPrefix>$(AssemblyVersion)</VersionPrefix>
         <Description>This package includes common utilities that are utilized by the full package.</Description>
 
         <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -23,10 +21,6 @@
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
         </None>
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Update="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     </ItemGroup>
 
 </Project>
