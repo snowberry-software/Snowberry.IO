@@ -25,11 +25,11 @@ public class ReaderTests
     [Fact]
     private void ReadUntilEnd()
     {
-        var memory = new MemoryStream(new byte[]
-        {
+        var memory = new MemoryStream(
+        [
             33, 92, 82,33, 92, 82,33, 92, 82,33, 92, 82,33, 92, 82,33, 92, 82,33, 92, 82,33, 92, 82,
             33, 92, 82,33, 92, 82,33, 92, 82,33, 92, 82,33, 92, 82,33, 92, 82,33, 92, 82,33, 92, 82
-        });
+        ]);
 
         using var reader = new EndianStreamReader(memory);
         byte[] data = reader.ReadUntilEnd();

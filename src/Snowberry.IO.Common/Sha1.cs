@@ -5,22 +5,29 @@ using System.Text;
 namespace Snowberry.IO.Common;
 
 /// <summary>
-/// Representation of a SHA1 hash.
+/// Represents a SHA-1 hash.
 /// </summary>
 public struct Sha1 : IEquatable<Sha1>
 {
     // Reference: https://en.wikipedia.org/wiki/SHA-1
 
+    /// <summary>
+    /// The size of the SHA-1 hash in bytes.
+    /// </summary>
     public const int StructSize = 20;
+
+    /// <summary>
+    /// A <see cref="Sha1"/> instance with all components set to zero.
+    /// </summary>
     public static readonly Sha1 Zero = new(null as byte[]);
 
     private uint _a, _b, _c, _d, _e;
 
     /// <summary>
-    /// Creates a new <see cref="Sha1" /> using the given data.
+    /// Initializes a new instance of the <see cref="Sha1"/> struct using the given buffer.
     /// </summary>
-    /// <remarks>The <paramref name="buffer"/> must have a length of minimum 20 bytes when specified.</remarks>
-    /// <param name="buffer">The optional pre-defined buffer.</param>
+    /// <remarks>The <paramref name="buffer"/> must have a length of at least 20 bytes when specified.</remarks>
+    /// <param name="buffer">The optional pre-defined buffer containing the SHA-1 hash.</param>
     public Sha1(byte[]? buffer)
     {
         if (buffer == null)
@@ -29,18 +36,11 @@ public struct Sha1 : IEquatable<Sha1>
             return;
         }
 
-        if (buffer.Length < 20)
-            throw new ArgumentException($"{nameof(Sha1)} buffer must be a minimum of {StructSize} bytes in length", nameof(buffer));
-
-        _a = (uint)(buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24));
-        _b = (uint)(buffer[4] | (buffer[5] << 8) | (buffer[6] << 16) | (buffer[7] << 24));
-        _c = (uint)(buffer[8] | (buffer[9] << 8) | (buffer[10] << 16) | (buffer[11] << 24));
-        _d = (uint)(buffer[12] | (buffer[13] << 8) | (buffer[14] << 16) | (buffer[15] << 24));
-        _e = (uint)(buffer[16] | (buffer[17] << 8) | (buffer[18] << 16) | (buffer[19] << 24));
+        From(buffer.AsSpan());
     }
 
     /// <summary>
-    /// Creates a new <see cref="Sha1"/> using the given components.
+    /// Initializes a new instance of the <see cref="Sha1"/> struct using the given components.
     /// </summary>
     /// <param name="a">The A component.</param>
     /// <param name="b">The B component.</param>
@@ -56,13 +56,22 @@ public struct Sha1 : IEquatable<Sha1>
         _e = e;
     }
 
-#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
     /// <summary>
-    /// Create <see cref="Sha1"/> using the given span data.
+    /// Initializes a new instance of the <see cref="Sha1"/> struct using the given span data.
     /// </summary>
-    /// <remarks>The <paramref name="data"/> must have a length of minimum 20 bytes.</remarks>
-    /// <param name="data">The span data.</param>
+    /// <remarks>The <paramref name="data"/> must have a length of at least 20 bytes.</remarks>
+    /// <param name="data">The span data containing the SHA-1 hash.</param>
     public Sha1(ReadOnlySpan<byte> data)
+    {
+        From(data);
+    }
+
+    /// <summary>
+    /// Populates the <see cref="Sha1"/> instance using the given span data.
+    /// </summary>
+    /// <param name="data">The span data containing the SHA-1 hash.</param>
+    /// <exception cref="ArgumentException">Thrown when the length of <paramref name="data"/> is less than 20 bytes.</exception>
+    public void From(ReadOnlySpan<byte> data)
     {
         if (data.Length < 20)
             throw new ArgumentException($"{nameof(Sha1)} must be a minimum of {StructSize} bytes in length", nameof(data));
@@ -73,13 +82,14 @@ public struct Sha1 : IEquatable<Sha1>
         _d = (uint)(data[12] | (data[13] << 8) | (data[14] << 16) | (data[15] << 24));
         _e = (uint)(data[16] | (data[17] << 8) | (data[18] << 16) | (data[19] << 24));
     }
-#endif
 
     /// <summary>
-    /// Create <see cref="Sha1"/> using the given <paramref name="hash"/>.
+    /// Initializes a new instance of the <see cref="Sha1"/> struct using the given hash string.
     /// </summary>
-    /// <remarks>The <paramref name="hash"/> has to have a length of <see langword="40"/>.</remarks>
-    /// <param name="hash">The hash text.</param>
+    /// <remarks>The <paramref name="hash"/> must have a length of 40 characters.</remarks>
+    /// <param name="hash">The hash string.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="hash"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when the length of <paramref name="hash"/> is not 40 characters.</exception>
     public unsafe Sha1(string hash)
     {
 #if NET6_0_OR_GREATER
@@ -123,22 +133,22 @@ public struct Sha1 : IEquatable<Sha1>
     }
 
     /// <summary>
-    /// Compare <paramref name="a" /> to <paramref name="b" />.
+    /// Compares two <see cref="Sha1"/> instances for inequality.
     /// </summary>
-    /// <param name="a">The left hash.</param>
-    /// <param name="b">The right hash.</param>
-    /// <returns>Whether both hashes aren't equal to each other.</returns>
+    /// <param name="a">The left <see cref="Sha1"/> instance.</param>
+    /// <param name="b">The right <see cref="Sha1"/> instance.</param>
+    /// <returns><see langword="true"/> if the instances are not equal; otherwise, <see langword="false"/>.</returns>
     public static bool operator !=(Sha1 a, Sha1 b)
     {
         return !(a == b);
     }
 
     /// <summary>
-    /// Compare <paramref name="a" /> to <paramref name="b" />
+    /// Compares two <see cref="Sha1"/> instances for equality.
     /// </summary>
-    /// <param name="a">The left hash.</param>
-    /// <param name="b">The right hash.</param>
-    /// <returns>Whether both hashes are equal to each other.</returns>
+    /// <param name="a">The left <see cref="Sha1"/> instance.</param>
+    /// <param name="b">The right <see cref="Sha1"/> instance.</param>
+    /// <returns><see langword="true"/> if the instances are equal; otherwise, <see langword="false"/>.</returns>
     public static bool operator ==(Sha1 a, Sha1 b)
     {
         return a.Equals(b);
@@ -147,7 +157,7 @@ public struct Sha1 : IEquatable<Sha1>
     /// <inheritdoc />
     public readonly bool Equals(Sha1 other)
     {
-        return _a == other._a && _b == other._b && _c == other._c && _d == other._d;
+        return _a == other._a && _b == other._b && _c == other._c && _d == other._d && _e == other._e;
     }
 
     /// <inheritdoc />
@@ -156,6 +166,7 @@ public struct Sha1 : IEquatable<Sha1>
         return obj is Sha1 other && other.Equals(this);
     }
 
+    /// <inheritdoc />
     public override readonly int GetHashCode()
     {
 #if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
@@ -166,16 +177,14 @@ public struct Sha1 : IEquatable<Sha1>
     }
 
     /// <summary>
-    /// Returns the <see cref="Sha1" /> value as a byte array.
+    /// Returns the <see cref="Sha1"/> value as a byte array.
     /// </summary>
-    /// <returns>The <see cref="Sha1" /> value as a byte array.</returns>
+    /// <returns>A byte array containing the SHA-1 hash.</returns>
     public readonly byte[] GetHashBuffer()
     {
-        // NOTE(VNC:)
-        // Take all hash components and turn their 32 bits into smaller 8 bit parts.
-
-        return new byte[]
-        {
+        // Converts the SHA-1 hash components into a byte array.
+        return
+        [
             // A
             (byte)(_a & 0xFF),
             (byte)((_a >> 8) & 0xFF),
@@ -205,17 +214,17 @@ public struct Sha1 : IEquatable<Sha1>
             (byte)((_e >> 8) & 0xFF),
             (byte)((_e >> 16) & 0xFF),
             (byte)((_e >> 24) & 0xFF)
-        };
+        ];
     }
 
     /// <summary>
-    /// Returns the <see cref="Sha1" /> hash as a string.
+    /// Returns the <see cref="Sha1"/> hash as a string.
     /// </summary>
-    /// <returns>The <see cref="Sha1" /> hash as a string value.</returns>
+    /// <returns>A string representation of the SHA-1 hash.</returns>
     public override readonly unsafe string ToString()
     {
-        // NOTE(VNC): The length will be 2 chars * (5*4) components.
-        var output = new StringBuilder(10);
+        // Converts the SHA-1 hash components into a hexadecimal string.
+        var output = new StringBuilder(40);
 
         uint* components = stackalloc uint[5];
         components[0] = _a;
@@ -227,9 +236,9 @@ public struct Sha1 : IEquatable<Sha1>
         for (int i = 0; i < 5; i++)
             output.Append(string.Concat(
                 ((byte)(components[i] & 0xFF)).ToString("X2", CultureInfo.InvariantCulture),
-                ((byte)(components[i] >> 0x8)).ToString("X2", CultureInfo.InvariantCulture),
-                ((byte)(components[i] >> 0x10)).ToString("X2", CultureInfo.InvariantCulture),
-                ((byte)(components[i] >> 0x18)).ToString("X2", CultureInfo.InvariantCulture)
+                ((byte)(components[i] >> 8)).ToString("X2", CultureInfo.InvariantCulture),
+                ((byte)(components[i] >> 16)).ToString("X2", CultureInfo.InvariantCulture),
+                ((byte)(components[i] >> 24)).ToString("X2", CultureInfo.InvariantCulture)
             ));
 
         return output.ToString();

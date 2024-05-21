@@ -1,4 +1,5 @@
-﻿using Snowberry.IO.Common.Reader.Interfaces;
+﻿using System;
+using Snowberry.IO.Common.Reader.Interfaces;
 
 namespace Snowberry.IO.Common.Reader;
 
@@ -17,8 +18,8 @@ public abstract class Analyzer
     /// Analyzes the read bytes in the specified <paramref name="buffer"/>.
     /// </summary>
     /// <param name="reader">The current reader instance.</param>
-    /// <param name="buffer">The buffer to analyze.</param>
+    /// <param name="buffer">The span of bytes to analyze.</param>
     /// <param name="amount">The amount of bytes that were read.</param>
-    /// <param name="offset">The offset in the <paramref name="buffer"/> for the new read data, othwerise <see langword="-1"/>.</param>
-    public abstract void AnalyzeReadBytes(IEndianReader reader, byte[] buffer, int amount, long offset = -1);
+    /// <param name="offset">The offset in the <paramref name="buffer"/> for the new read data, otherwise <see langword="-1"/>.</param>
+    public abstract void AnalyzeReadBytes(IEndianReader reader, Span<byte> buffer, int amount, long offset = -1);
 }

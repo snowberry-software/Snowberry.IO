@@ -13,7 +13,6 @@ public struct RegionRange : IEquatable<RegionRange>
     public long Size;
 #pragma warning restore CA1051 // Do not declare visible instance fields
 
-#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
     /// <summary>
     /// Uses the <see cref="Range"/> to create a new <see cref="RegionRange"/>.
     /// </summary>
@@ -41,7 +40,6 @@ public struct RegionRange : IEquatable<RegionRange>
     {
         return range;
     }
-#endif
 
     /// <inheritdoc/>
     public override readonly bool Equals(object? obj)

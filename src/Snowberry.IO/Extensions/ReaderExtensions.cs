@@ -147,8 +147,8 @@ public static class ReaderExtensions
     /// <returns>The offsets/addresses for the found signatures.</returns>
     public static unsafe IList<long> ScanSignatures(this IEndianReader reader, string pattern, int maxCount, long maxAddress)
     {
-        ArgumentNullException.ThrowIfNull(reader);
-        ArgumentNullException.ThrowIfNull(pattern);
+        _ = reader ?? throw new ArgumentNullException(nameof(reader));
+        _ = pattern ?? throw new ArgumentNullException(nameof(pattern));
 
         var offsets = new List<long>();
 

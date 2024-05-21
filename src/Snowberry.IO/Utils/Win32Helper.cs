@@ -3,7 +3,9 @@ using System.Runtime.Versioning;
 
 namespace Snowberry.IO.Utils;
 
+#if NET5_0_OR_GREATER
 [SupportedOSPlatform("windows")]
+#endif
 internal static class Win32Helper
 {
     [DllImport("kernel32.dll", SetLastError = true)]

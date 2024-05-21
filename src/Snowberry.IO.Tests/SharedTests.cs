@@ -37,8 +37,11 @@ public class SharedTests
         CreateShared((x, _) =>
         {
             if (isUnicode)
+#if NETFRAMEWORK
+                actualStringPayloadSize = x.Encoding.GetByteCount(expected);
+#else
                 actualStringPayloadSize = x.Encoding.GetByteCount(expected.AsSpan());
-
+#endif
             if (actualStringPayloadSize < minFixedSize)
                 actualStringPayloadSize = minFixedSize;
 
@@ -474,7 +477,7 @@ public class SharedTests
     {
         CreateShared((x, _) =>
         {
-            x.Write(new byte[] { 0x12, 0x13, 0x14 });
+            x.Write([0x12, 0x13, 0x14]);
         },
         (x, _) =>
         {
