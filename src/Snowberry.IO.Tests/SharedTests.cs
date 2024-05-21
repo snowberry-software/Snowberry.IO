@@ -61,7 +61,7 @@ public class SharedTests
     }
 
     [Theory]
-    [InlineData("TestCString1")]
+    [InlineData("TestCString1✅🤣☆*: .｡. o(≧▽≦)o .｡.:*☆👨🏻")]
     [InlineData("TestCString😊😊👳‍♂️_{}")]
     private void ReadWrite_CString(string expected)
     {
