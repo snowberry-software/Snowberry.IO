@@ -4,6 +4,9 @@ using System.Runtime.InteropServices;
 
 namespace Snowberry.IO.Common;
 
+/// <summary>
+/// Provides methods to convert binary data between different endian formats.
+/// </summary>
 public static partial class BinaryEndianConverter
 {
 

@@ -2,6 +2,9 @@
 
 namespace Snowberry.IO.Common;
 
+/// <summary>
+/// Provides utility methods for binary data alignment.
+/// </summary>
 public static class BinaryUtils
 {
     /// <summary>
