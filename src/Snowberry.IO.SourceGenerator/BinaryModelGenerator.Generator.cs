@@ -12,11 +12,8 @@ namespace Snowberry.IO.SourceGenerator;
 
 public partial class BinaryModelGenerator
 {
-    internal void Generate(
-        GeneratorExecutionContext context,
-        INamedTypeSymbol binaryIgnoreAttribute,
-        INamedTypeSymbol binaryPropertyAttribute,
-        Compilation compilation,
+    internal static void Generate(
+        SourceProductionContext context,
         ValidatedTypeDecl validTypeDeclaration)
     {
         var symbol = validTypeDeclaration.TypeSymbol;
@@ -30,7 +27,8 @@ public partial class BinaryModelGenerator
                 if (x.IsIndexer || x.IsReadOnly || x.IsStatic || x.IsWriteOnly)
                     return false;
 
-                if (x.GetAttributes().FirstOrDefault(x => binaryIgnoreAttribute.Equals(x.AttributeClass, SymbolEqualityComparer.Default)) != null)
+                var attributes = x.GetAttributes();
+                if (attributes.FirstOrDefault(x => x.AttributeClass?.Name == c_BinaryPropertyAttributeName && x.AttributeClass?.ContainingNamespace?.ToString() == c_CustomNamespace) == null)
                     return false;
 
                 return true;
@@ -41,7 +39,7 @@ public partial class BinaryModelGenerator
                     PropertySymbol = x
                 };
 
-                var attributeInfo = x.GetAttributes().FirstOrDefault(x => binaryPropertyAttribute.Equals(x.AttributeClass, SymbolEqualityComparer.Default));
+                var attributeInfo = x.GetAttributes().FirstOrDefault(x => x.AttributeClass?.Name == c_BinaryPropertyAttributeName && x.AttributeClass?.ContainingNamespace?.ToString() == c_CustomNamespace);
                 if (attributeInfo != null && attributeInfo.NamedArguments.Length > 0)
                 {
                     foreach (var pair in attributeInfo.NamedArguments)
@@ -87,7 +85,7 @@ public partial class BinaryModelGenerator
         // Read method
         uint typeSize = 0;
         {
-            typeSize = GenerateReadMethod(sb, props, binaryPropertyAttribute, typeCurrentVersion);
+            typeSize = GenerateReadMethod(sb, props, typeCurrentVersion);
         }
 
         string symbolType = symbol.TypeKind == TypeKind.Struct ? "struct" : "class";
@@ -154,7 +152,7 @@ public partial class BinaryModelGenerator
             """, Encoding.UTF8));
     }
 
-    private uint GenerateReadMethod(StringBuilder sb, MappedProperty[] props, INamedTypeSymbol binaryPropertyAttribute, uint typeCurrentVersion)
+    private static uint GenerateReadMethod(StringBuilder sb, MappedProperty[] props, uint typeCurrentVersion)
     {
         GenerateReadMethod(true);
         sb.Append($"\n\t\t");
@@ -264,7 +262,7 @@ public partial class BinaryModelGenerator
         }
     }
 
-    private void WriteIfClauseForPropertyVersion(StringBuilder sb, MappedProperty prop, Action innerBody)
+    private static void WriteIfClauseForPropertyVersion(StringBuilder sb, MappedProperty prop, Action innerBody)
     {
         if (!prop.IsPropertyInCurrentTypeVersion)
         {
@@ -283,7 +281,7 @@ public partial class BinaryModelGenerator
             sb.AppendLine("\t\t\t}");
     }
 
-    private bool SupportsDifferentEndianType(ITypeSymbol? typeSymbol, SpecialType? specialType)
+    private static bool SupportsDifferentEndianType(ITypeSymbol? typeSymbol, SpecialType? specialType)
     {
         bool result = false;
         if (specialType != null)
@@ -308,7 +306,7 @@ public partial class BinaryModelGenerator
         return false;
     }
 
-    private uint GetTypeSize(ITypeSymbol? typeSymbol, SpecialType? specialType)
+    private static uint GetTypeSize(ITypeSymbol? typeSymbol, SpecialType? specialType)
     {
         if (specialType != null)
         {

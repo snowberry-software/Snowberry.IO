@@ -3,23 +3,26 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Snowberry.IO.Common;
 
 namespace Snowberry.IO.SourceGenerator;
 
-[Generator]
-public partial class BinaryModelGenerator : ISourceGenerator
+[Generator(LanguageNames.CSharp)]
+public partial class BinaryModelGenerator : IIncrementalGenerator
 {
     /// <inheritdoc/>
-    public void Initialize(GeneratorInitializationContext context)
+    public void Initialize(IncrementalGeneratorInitializationContext context)
     {
 #if DEBUG
-        Debugger.Launch();
+        //Debugger.Launch();
 #endif
-        context.RegisterForPostInitialization(context =>
+
+        context.RegisterPostInitializationOutput(static context =>
         {
             context.AddSource($"{c_BinarySerializationAttributeName}.g.cs", SourceText.From($$"""
                 using System;
@@ -27,6 +30,8 @@ public partial class BinaryModelGenerator : ISourceGenerator
 
                 namespace {{c_CustomNamespace}}
                 {
+                    // Generated at: {{DateTime.UtcNow.ToString("yyyy-MM-dd")}}
+
                     /// <summary>
                     /// Enables the generation of the binary model.
                     /// </summary>
@@ -94,62 +99,115 @@ public partial class BinaryModelGenerator : ISourceGenerator
                 """, Encoding.UTF8));
         });
 
-        context.RegisterForSyntaxNotifications(() => new SyntaxReceiver());
+        //context.RegisterForSyntaxNotifications(() => new SyntaxReceiver());
+
+        var compilation = context.CompilationProvider;
+
+        var binarySerializationAttribute = compilation.Select(static (c, _) => c.GetTypeByMetadataName($"{c_CustomNamespace}.{c_BinarySerializationAttributeName}")!);
+        var binaryIgnoreAttribute = compilation.Select(static (c, _) => c.GetTypeByMetadataName($"{c_CustomNamespace}.{c_BinaryIgnoreAttributeName}")!);
+        var binaryPropertyAttribute = compilation.Select(static (c, _) => c.GetTypeByMetadataName($"{c_CustomNamespace}.{c_BinaryPropertyAttributeName}")!);
+
+        var validatedTypeDeclarationProvider = context.SyntaxProvider
+            .ForAttributeWithMetadataName($"{c_CustomNamespace}.{c_BinarySerializationAttributeName}",
+                static (n, _) => n is TypeDeclarationSyntax,
+                (syntaxContext, _) => ((TypeDeclarationSyntax)syntaxContext.TargetNode, (INamedTypeSymbol)syntaxContext.TargetSymbol))
+            .Combine(binarySerializationAttribute)
+            .Select((combined, _) =>
+            {
+                var (pair, binarySerializationAttribute) = combined;
+
+                var namedTypeSymbol = pair.Item2;
+
+                if (binarySerializationAttribute == null)
+                    return null;
+
+                // Check for the presence of the binarySerializationAttribute
+                AttributeData? binarySerializationAttributeData = null;
+                var attributes = namedTypeSymbol.GetAttributes();
+                binarySerializationAttributeData = attributes
+                    .FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, binarySerializationAttribute));
+
+                if (binarySerializationAttributeData == null)
+                    return null;
+
+                object? constructorArgValue = binarySerializationAttributeData.ConstructorArguments.FirstOrDefault().Value;
+                uint currentVersion = constructorArgValue is uint cur ? cur : 0;
+
+                return new ValidatedTypeDecl
+                {
+                    TypeDeclaration = pair.Item1,
+                    TypeSymbol = namedTypeSymbol,
+                    CurrentVersion = currentVersion
+                };
+            }).Where(x => x != null);
+
+        context.RegisterSourceOutput(validatedTypeDeclarationProvider.Collect(), static (sourceProductionContext, validatedTypeDeclarations) =>
+        {
+            for (int i = 0; i < validatedTypeDeclarations.Length; i++)
+            {
+                var validatedTypeDeclaration = validatedTypeDeclarations[i];
+
+                if (validatedTypeDeclaration == null)
+                    continue;
+
+                Generate(sourceProductionContext, validatedTypeDeclaration);
+            }
+        });
     }
 
     /// <inheritdoc/>
-    public void Execute(GeneratorExecutionContext context)
-    {
-        if (context.SyntaxReceiver is not SyntaxReceiver receiver)
-            return;
+    //public void Execute(GeneratorExecutionContext context)
+    //{
+    //    if (context.SyntaxReceiver is not SyntaxReceiver receiver)
+    //        return;
 
-        var compilation = context.Compilation;
-        var binarySerializationAttribute = compilation.GetTypeByMetadataName($"{c_CustomNamespace}.{c_BinarySerializationAttributeName}");
-        var binaryIgnoreAttribute = compilation.GetTypeByMetadataName($"{c_CustomNamespace}.{c_BinaryIgnoreAttributeName}");
-        var binaryPropertyAttribute = compilation.GetTypeByMetadataName($"{c_CustomNamespace}.{c_BinaryPropertyAttributeName}");
+    //    var compilation = context.Compilation;
+    //    var binarySerializationAttribute = compilation.GetTypeByMetadataName($"{c_CustomNamespace}.{c_BinarySerializationAttributeName}");
+    //    var binaryIgnoreAttribute = compilation.GetTypeByMetadataName($"{c_CustomNamespace}.{c_BinaryIgnoreAttributeName}");
+    //    var binaryPropertyAttribute = compilation.GetTypeByMetadataName($"{c_CustomNamespace}.{c_BinaryPropertyAttributeName}");
 
-        if (binarySerializationAttribute is null)
-            throw new InvalidProgramException($"Could not find `{c_BinarySerializationAttributeName}` attribute!");
+    //    if (binarySerializationAttribute is null)
+    //        throw new InvalidProgramException($"Could not find `{c_BinarySerializationAttributeName}` attribute!");
 
-        if (binaryIgnoreAttribute is null)
-            throw new InvalidProgramException($"Could not find `{c_BinaryIgnoreAttributeName}` attribute!");
+    //    if (binaryIgnoreAttribute is null)
+    //        throw new InvalidProgramException($"Could not find `{c_BinaryIgnoreAttributeName}` attribute!");
 
-        if (binaryPropertyAttribute is null)
-            throw new InvalidProgramException($"Could not find `{c_BinaryPropertyAttributeName}` attribute!");
+    //    if (binaryPropertyAttribute is null)
+    //        throw new InvalidProgramException($"Could not find `{c_BinaryPropertyAttributeName}` attribute!");
 
-        var validTypeDeclarations = new List<ValidatedTypeDecl>();
+    //    var validTypeDeclarations = new List<ValidatedTypeDecl>();
 
-        for (int i = 0; i < receiver.TypeDeclarations.Count; i++)
-        {
-            var typeDeclaration = receiver.TypeDeclarations[i];
+    //    for (int i = 0; i < receiver.TypeDeclarations.Count; i++)
+    //    {
+    //        var typeDeclaration = receiver.TypeDeclarations[i];
 
-            var model = context.Compilation.GetSemanticModel(typeDeclaration.SyntaxTree);
+    //        var model = context.Compilation.GetSemanticModel(typeDeclaration.SyntaxTree);
 
-            if (model.GetDeclaredSymbol(typeDeclaration) is not INamedTypeSymbol symbol)
-                continue;
+    //        if (model.GetDeclaredSymbol(typeDeclaration) is not INamedTypeSymbol symbol)
+    //            continue;
 
-            AttributeData? binarySerializationAttributeData = null;
-            if ((binarySerializationAttributeData = symbol.GetAttributes().FirstOrDefault(x => binarySerializationAttribute.Equals(x.AttributeClass, SymbolEqualityComparer.Default))) == null)
-                continue;
+    //        AttributeData? binarySerializationAttributeData = null;
+    //        if ((binarySerializationAttributeData = symbol.GetAttributes().FirstOrDefault(x => binarySerializationAttribute.Equals(x.AttributeClass, SymbolEqualityComparer.Default))) == null)
+    //            continue;
 
-            object? constructorArgValue = binarySerializationAttributeData.ConstructorArguments.FirstOrDefault().Value;
-            uint currentVersion = constructorArgValue is uint cur ? cur : 0;
+    //        object? constructorArgValue = binarySerializationAttributeData.ConstructorArguments.FirstOrDefault().Value;
+    //        uint currentVersion = constructorArgValue is uint cur ? cur : 0;
 
-            validTypeDeclarations.Add(new()
-            {
-                SemanticModel = model,
-                TypeDeclaration = typeDeclaration,
-                TypeSymbol = symbol,
-                CurrentVersion = currentVersion
-            });
-        }
+    //        validTypeDeclarations.Add(new()
+    //        {
+    //            SemanticModel = model,
+    //            TypeDeclaration = typeDeclaration,
+    //            TypeSymbol = symbol,
+    //            CurrentVersion = currentVersion
+    //        });
+    //    }
 
-        for (int i = 0; i < validTypeDeclarations.Count; i++)
-        {
-            var validTypeDeclaration = validTypeDeclarations[i];
-            Generate(context, binaryIgnoreAttribute, binaryPropertyAttribute, compilation, validTypeDeclaration);
-        }
-    }
+    //    for (int i = 0; i < validTypeDeclarations.Count; i++)
+    //    {
+    //        var validTypeDeclaration = validTypeDeclarations[i];
+    //        Generate(context, binaryIgnoreAttribute, binaryPropertyAttribute, compilation, validTypeDeclaration);
+    //    }
+    //}
 }
 
 internal class SyntaxReceiver : ISyntaxReceiver
@@ -178,8 +236,6 @@ internal class ValidatedTypeDecl
     public TypeDeclarationSyntax TypeDeclaration { get; set; } = null!;
 
     public INamedTypeSymbol TypeSymbol { get; set; } = null!;
-
-    public SemanticModel SemanticModel { get; set; } = null!;
 
     public uint CurrentVersion { get; set; }
 }

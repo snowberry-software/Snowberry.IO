@@ -6,7 +6,6 @@ namespace Snowberry.IO.Tests.Models;
 [BinarySerialization(5)]
 public partial class BinaryModel1
 {
-
     [BinaryProperty(Index = 0)]
     public int Id { get; set; }
 
