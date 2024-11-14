@@ -118,7 +118,8 @@ partial class Build : NukeBuild
                 Log.Information("Testing {name}...", test.Name);
 
                 DotNetTest(x => SetDefaultOptions(x)
-                    .SetProjectFile(test));
+                    .SetProjectFile(test)
+                    .SetFramework("net9.0"));
             }
         });
 
