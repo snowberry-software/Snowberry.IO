@@ -63,7 +63,11 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
             data[14] = guidBytes[14];
             data[15] = guidBytes[15];
 
+#if NETSTANDARD2_0
+            base.Write(data.ToArray());
+#else
             base.Write(data);
+#endif
             return this;
         }
 
@@ -196,12 +200,16 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
     /// <inheritdoc/>
     public IEndianWriter WriteSizedCString(string text, int size)
     {
-        ArgumentNullException.ThrowIfNull(text);
+        _ = text ?? throw new ArgumentNullException(nameof(text));
 
         if (size < text.Length)
             throw new ArgumentOutOfRangeException($"{nameof(size)}", "The size must be greater than the text length.");
 
+#if NETSTANDARD2_0
+        int byteCount = _encoding.GetByteCount(text);
+#else
         int byteCount = _encoding.GetByteCount(text.AsSpan());
+#endif
 
         if (byteCount > size)
             throw new IOException($"The byte count of the text `{byteCount}` is greater than the specified size `{size}`.\nCheck the data of the text or the encoding that is used.");
@@ -223,7 +231,8 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
     public IEndianWriter WriteLine(string text)
     {
         WriteStringCharacters(text);
-        base.Write(Environment.NewLine.AsSpan());
+        WriteStringCharacters(Environment.NewLine);
+
         return this;
     }
 
@@ -240,9 +249,13 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
     /// <inheritdoc/>
     public IEndianWriter WriteStringCharacters(string text)
     {
-        ArgumentNullException.ThrowIfNull(text);
+        _ = text ?? throw new ArgumentNullException(nameof(text));
 
+#if NETSTANDARD2_0
+        base.Write(Encoding.GetBytes(text));
+#else
         base.Write(text.AsSpan());
+#endif
 
         return this;
     }
@@ -328,6 +341,33 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
         base.Write(value);
         return this;
     }
+
+#if NETSTANDARD2_0_OR_GREATER
+    private void Write7BitEncodedInt64(long value)
+    {
+        // Licensed to the .NET Foundation under one or more agreements.
+        // The .NET Foundation licenses this file to you under the MIT license.
+        //
+        // https://github.com/dotnet/corert/blob/master/src/System.Private.CoreLib/shared/System/IO/BinaryWriter.cs
+        //
+
+        ulong uValue = (ulong)value;
+
+        // Write out an int 7 bits at a time. The high bit of the byte,
+        // when on, tells reader to continue reading more bytes.
+        //
+        // Using the constants 0x7F and ~0x7F below offers smaller
+        // codegen than using the constant 0x80.
+
+        while (uValue > 0x7Fu)
+        {
+            Write((byte)((uint)uValue | ~0x7Fu));
+            uValue >>= 7;
+        }
+
+        Write((byte)uValue);
+    }
+#endif
 
     /// <inheritdoc/>
     public long Position

@@ -37,8 +37,11 @@ public class SharedTests
         CreateShared((x, _) =>
         {
             if (isUnicode)
+#if NETFRAMEWORK
+                actualStringPayloadSize = x.Encoding.GetByteCount(expected);
+#else
                 actualStringPayloadSize = x.Encoding.GetByteCount(expected.AsSpan());
-
+#endif
             if (actualStringPayloadSize < minFixedSize)
                 actualStringPayloadSize = minFixedSize;
 
@@ -58,7 +61,7 @@ public class SharedTests
     }
 
     [Theory]
-    [InlineData("TestCString1")]
+    [InlineData("TestCString1✅🤣☆*: .｡. o(≧▽≦)o .｡.:*☆👨🏻")]
     [InlineData("TestCString😊😊👳‍♂️_{}")]
     private void ReadWrite_CString(string expected)
     {
@@ -474,7 +477,7 @@ public class SharedTests
     {
         CreateShared((x, _) =>
         {
-            x.Write(new byte[] { 0x12, 0x13, 0x14 });
+            x.Write([0x12, 0x13, 0x14]);
         },
         (x, _) =>
         {

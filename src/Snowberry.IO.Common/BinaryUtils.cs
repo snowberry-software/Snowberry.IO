@@ -2,6 +2,9 @@
 
 namespace Snowberry.IO.Common;
 
+/// <summary>
+/// Provides utility methods for binary data alignment.
+/// </summary>
 public static class BinaryUtils
 {
     /// <summary>
@@ -25,11 +28,11 @@ public static class BinaryUtils
     }
 
     /// <summary>
-    /// Calcualtes the number of padding bytes required to align the start of a data structure.
+    /// Calculates the number of padding bytes required to align the start of a data structure.
     /// </summary>
     /// <param name="position">The current position/offset.</param>
     /// <param name="alignment">The alignment.</param>
-    /// <returns>The number of padding bytest required to align the start of a data structure.</returns>
+    /// <returns>The number of padding bytes required to align the start of a data structure.</returns>
 #if NET6_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #else

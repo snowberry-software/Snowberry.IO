@@ -1,0 +1,6 @@
+<Project>
+    <PropertyGroup>
+        <SignAssembly>true</SignAssembly>
+        <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)Snowberry.IO.snk</AssemblyOriginatorKeyFile>
+    </PropertyGroup>
+</Project>

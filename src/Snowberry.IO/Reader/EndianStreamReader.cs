@@ -6,7 +6,7 @@ namespace Snowberry.IO.Reader;
 /// <summary>
 /// Supports reading different endian types from streams.
 /// </summary>
-public class EndianStreamReader : BaseEndianReader
+public partial class EndianStreamReader : BaseEndianReader
 {
     protected Stream? _stream;
 
@@ -38,7 +38,7 @@ public class EndianStreamReader : BaseEndianReader
     /// <inheritdoc/>
     public override void CopyTo(Stream destination)
     {
-        ArgumentNullException.ThrowIfNull(destination);
+        _ = destination ?? throw new ArgumentNullException(nameof(destination));
         _ = Stream ?? throw new NullReferenceException(nameof(Stream));
 
         Stream.CopyTo(destination);
@@ -47,7 +47,7 @@ public class EndianStreamReader : BaseEndianReader
     /// <inheritdoc/>
     public override void CopyTo(Stream destination, int length, int bufferSize = 0x14000)
     {
-        ArgumentNullException.ThrowIfNull(destination);
+        _ = destination ?? throw new ArgumentNullException(nameof(destination));
         _ = Stream ?? throw new NullReferenceException(nameof(Stream));
 
         byte[] buffer = new byte[bufferSize];
@@ -57,7 +57,7 @@ public class EndianStreamReader : BaseEndianReader
             if (IsRegionViewEnabled)
                 _viewOffset += read;
 
-            Analyzer?.AnalyzeReadBytes(this, buffer, read, 0);
+            Analyzer?.AnalyzeReadBytes(this, buffer.AsSpan(), read, 0);
 
             destination.Write(buffer, 0, read);
             length -= read;
@@ -67,14 +67,7 @@ public class EndianStreamReader : BaseEndianReader
     /// <inheritdoc/>
     protected override int InternalReadBytes(byte[] inBuffer, int offset, int byteCount)
     {
-        _ = Stream ?? throw new NullReferenceException(nameof(Stream));
-
-        // NOTE(VNC): Important because of region views.
-        if (!CanReadData)
-            return 0;
-        //throw new EndOfStreamException();
-
-        return Stream.Read(inBuffer, offset, byteCount);
+        return InternalReadBytes(inBuffer.AsSpan()[offset..byteCount]);
     }
 
     /// <summary>

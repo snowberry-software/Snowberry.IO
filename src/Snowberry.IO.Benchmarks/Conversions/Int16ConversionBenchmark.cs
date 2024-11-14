@@ -10,7 +10,7 @@ namespace Snowberry.IO.Benchmarks.Conversions;
 [MediumRunJob]
 public class Int16ConversionBenchmark
 {
-    private static byte[] _data = { 0x12, 0x23, 0x14, 0x19 };
+    private static byte[] _data = [0x12, 0x23, 0x14, 0x19];
 
     [Benchmark]
     public short BitConverter_Int16()

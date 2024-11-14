@@ -9,8 +9,10 @@ namespace Snowberry.IO.Reader;
 /// Used for reading memory from a windows process.
 /// </summary>
 /// <remarks>String operations may not work (except <see cref="IEndianReader.ReadCString"/>).</remarks>
+#if NET5_0_OR_GREATER
 [SupportedOSPlatform("windows")]
-public class Win32ProcessReader : BaseEndianReader
+#endif
+public partial class Win32ProcessReader : BaseEndianReader
 {
     protected long _position;
     private readonly IntPtr _processHandle;
@@ -43,25 +45,7 @@ public class Win32ProcessReader : BaseEndianReader
     /// <inheritdoc/>
     protected override int InternalReadBytes(byte[] inBuffer, int offset, int byteCount)
     {
-        uint lpflOldProtect = 0u;
-        int read = 0;
-
-        // Update protection on memory region
-        // https://docs.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
-        // -> 0x2 -> PAGE_READONLY
-        VirtualProtectEx(_processHandle, _position, new((uint)byteCount), 0x2, ref lpflOldProtect);
-
-        // Read into buffer
-        if (!ReadProcessMemory(_processHandle, _position, inBuffer, byteCount, ref read))
-            return 0;
-
-        // Reset memory region protection
-        VirtualProtectEx(_processHandle, _position, new((uint)byteCount), lpflOldProtect, ref lpflOldProtect);
-
-        _position += byteCount;
-        Analyzer?.AnalyzeReadBytes(this, inBuffer, byteCount, 0);
-
-        return byteCount;
+        return InternalReadBytes(inBuffer.AsSpan()[offset..byteCount]);
     }
 
     /// <inheritdoc/>
@@ -85,7 +69,7 @@ public class Win32ProcessReader : BaseEndianReader
     /// <returns>Whether the dynamic library got successfully injected.</returns>
     public bool InjectDLL(string filePath)
     {
-        ArgumentNullException.ThrowIfNull(filePath);
+        _ = filePath ?? throw new ArgumentNullException(nameof(filePath));
 
         filePath = Path.GetFullPath(filePath);
 

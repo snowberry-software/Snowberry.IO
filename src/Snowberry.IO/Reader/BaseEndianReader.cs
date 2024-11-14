@@ -6,7 +6,10 @@ using Snowberry.IO.Common.Reader.Interfaces;
 
 namespace Snowberry.IO.Reader;
 
-public abstract class BaseEndianReader : IEndianReader
+/// <summary>
+/// Base implementation of <see cref="IEndianReader"/>.
+/// </summary>
+public abstract partial class BaseEndianReader : IEndianReader
 {
     /// <summary>
     /// The largest data type is the <see cref="Sha1"/> type.
@@ -22,7 +25,6 @@ public abstract class BaseEndianReader : IEndianReader
 
     protected readonly Decoder _decoder;
     protected readonly Encoding _encoding;
-    protected byte[]? _charBytes;
     protected char[]? _charBuffer;
     protected int _maxCharsSize;
 
@@ -54,7 +56,7 @@ public abstract class BaseEndianReader : IEndianReader
     /// <param name="encoding">The encoding to use.</param>
     protected BaseEndianReader(Analyzer? analyzer, int bufferSize, Encoding encoding)
     {
-        ArgumentNullException.ThrowIfNull(encoding);
+        _ = encoding ?? throw new ArgumentNullException(nameof(encoding));
 
         if (bufferSize < MinBufferSize)
             bufferSize = MinBufferSize;
@@ -71,17 +73,26 @@ public abstract class BaseEndianReader : IEndianReader
         _2BytesPerChar = encoding is UnicodeEncoding;
     }
 
-    /// <summary>
-    /// The internal implementation of <see cref="ReadInBuffer(byte[], int, int)"/>.
-    /// </summary>
-    /// <returns>The amount of bytes that were read.</returns>
-    protected abstract int InternalReadBytes(byte[] inBuffer, int offset, int byteCount);
-
-    internal void ThrowIfDisposed()
+    protected void ThrowIfDisposed()
     {
         if (Disposed)
             throw new ObjectDisposedException(nameof(BaseEndianReader));
     }
+
+    /// <summary>
+    /// Reads a specified number of bytes from the current stream into a buffer.
+    /// </summary>
+    /// <param name="inBuffer">The buffer to store the read bytes.</param>
+    /// <param name="offset">The zero-based byte offset in the buffer at which to begin storing the data read from the stream.</param>
+    /// <param name="byteCount">The maximum number of bytes to read from the current stream.</param>
+    /// <returns>
+    /// The total number of bytes read into the buffer. This can be less than the number
+    /// of bytes requested if that many bytes are not currently available, or zero if the end of the stream is reached.
+    /// </returns>
+    /// <remarks>
+    /// This method is intended to be implemented by derived classes to provide the actual logic for reading bytes.
+    /// </remarks>
+    protected abstract int InternalReadBytes(byte[] inBuffer, int offset, int byteCount);
 
     /// <inheritdoc/>
     public abstract void CopyTo(Stream destination);
@@ -90,7 +101,11 @@ public abstract class BaseEndianReader : IEndianReader
     public abstract void CopyTo(Stream destination, int length, int bufferSize = 0x14000);
 
     /// <inheritdoc/>
+#if NETCOREAPP3_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+#else
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
     public byte ReadByte()
     {
         ReadInInternalBuffer(1, 0);
@@ -98,7 +113,11 @@ public abstract class BaseEndianReader : IEndianReader
     }
 
     /// <inheritdoc/>
+#if NETCOREAPP3_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+#else
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
     public int ReadByteSafe()
     {
         int read = ReadInInternalBuffer(1, 0);
@@ -110,22 +129,22 @@ public abstract class BaseEndianReader : IEndianReader
     }
 
     /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#if NETCOREAPP3_0_OR_GREATER
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+#else
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
     public int Read(byte[] buffer, int offset, int byteCount)
     {
-        ArgumentNullException.ThrowIfNull(buffer);
-
-        int read = InternalReadBytes(buffer, offset, byteCount);
-
-        if (IsRegionViewEnabled)
-            _viewOffset += read;
-
-        Analyzer?.AnalyzeReadBytes(this, buffer, read, offset);
-        return read;
+        return Read(buffer.AsSpan()[offset..byteCount]);
     }
 
     /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+#if NETCOREAPP3_0_OR_GREATER
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+#else
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
     public int ReadInInternalBuffer(int byteCount, int offset)
     {
         return Read(Buffer, offset, byteCount);
@@ -194,7 +213,7 @@ public abstract class BaseEndianReader : IEndianReader
         var decoder = _encoding.GetDecoder();
 
         Span<char> decodedCharSpan = stackalloc char[_maxCharsSize];
-        _charBytes ??= new byte[MaxCharBytesSize];
+        Span<byte> charBytes = stackalloc byte[MaxCharBytesSize];
 
         int readLength;
         int n;
@@ -204,17 +223,17 @@ public abstract class BaseEndianReader : IEndianReader
         {
 
             readLength = size > MaxCharBytesSize ? MaxCharBytesSize : size;
-            n = Read(_charBytes, 0, readLength);
+            n = Read(charBytes[..readLength]);
 
             if (n == 0)
                 throw new EndOfStreamException();
 
             size -= n;
 
-            int x = _charBytes.AsSpan().IndexOf<byte>(0);
-            AppendCharacters(decoder, x > 0 ? _charBytes.AsSpan()[..x] : _charBytes.AsSpan(), decodedCharSpan, out int decodedCharCount);
+            int endIndex = charBytes.IndexOf<byte>(0);
+            AppendCharacters(decoder, endIndex > 0 ? charBytes[..endIndex] : charBytes, decodedCharSpan, out int decodedCharCount);
 
-            if (size > 0 && x != -1)
+            if (size > 0 && endIndex != -1)
             {
                 if (adjustPosition)
                     Position += size;
@@ -254,26 +273,33 @@ public abstract class BaseEndianReader : IEndianReader
         int position = 0;
         int n;
         int readLength;
-        int charsRead;
 
         var sb = new StringBuilder();
 
-        _charBytes ??= new byte[MaxCharBytesSize];
+        Span<byte> charBytes = stackalloc byte[MaxCharBytesSize];
         _charBuffer ??= new char[_maxCharsSize];
 
         do
         {
             readLength = ((stringLength - position) > MaxCharBytesSize) ? MaxCharBytesSize : (stringLength - position);
 
-            n = Read(_charBytes, 0, readLength);
+            n = Read(charBytes[..readLength]);
 
             if (n == 0)
                 throw new EndOfStreamException();
 
-            charsRead = _decoder.GetChars(_charBytes, 0, n, _charBuffer, 0);
-
             if (position == 0 && n == stringLength)
-                return new string(_charBuffer, 0, charsRead);
+#if NETSTANDARD2_0
+                return _encoding.GetString(charBytes[..n].ToArray());
+#else
+                return _encoding.GetString(charBytes[..n]);
+#endif
+
+#if NETSTANDARD2_0
+            int charsRead = _decoder.GetChars(charBytes[..n].ToArray(), 0, n, _charBuffer, 0);
+#else
+            int charsRead = _decoder.GetChars(charBytes[..n], _charBuffer, flush: false);
+#endif
 
             sb.Append(_charBuffer, 0, charsRead);
             position += n;
@@ -328,102 +354,33 @@ public abstract class BaseEndianReader : IEndianReader
 
     private void AppendCharacters(Decoder decoder, Span<byte> bytes, Span<char> chars, out int decodedCharCount)
     {
-        // Single byte encoding...
-        //if (_encoding.IsSingleByte)
-        //{
-        //    decodedCharCount = 0;
-        //    _stringBuilder.Append((char)characterValue);
-        //    return;
-        //}
+        _ = decoder ?? throw new ArgumentNullException(nameof(decoder));
 
-        ArgumentNullException.ThrowIfNull(decoder);
+#if NETSTANDARD2_0
+        char[] charBuffer = new char[chars.Length];
+        decodedCharCount = decoder.GetChars(bytes.ToArray(), 0, bytes.Length, charBuffer, 0);
 
-        // Multi byte encoding...
-        //bytes[0] = (byte)characterValue;
-
+        if (decodedCharCount != 0)
+            _stringBuilder.Append(charBuffer.AsSpan()[..decodedCharCount].ToArray());
+#else
         decodedCharCount = decoder.GetChars(bytes, chars, false);
 
         if (decodedCharCount != 0)
             _stringBuilder.Append(chars[..decodedCharCount]);
+#endif
     }
 
     /// <inheritdoc/>
-    public Sha1 ReadSha1()
-    {
-        ReadInInternalBuffer(Sha1.StructSize, 0);
-        return new(_buffer);
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+#if NETCOREAPP3_0_OR_GREATER
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+#else
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
     public void ReadAlignment(byte alignment)
     {
         long position = Position;
         BinaryUtils.ApplyAlignment(ref position, alignment);
         Position = position;
-    }
-
-    /// <inheritdoc/>
-    public long ReadLong(EndianType endian = EndianType.LITTLE)
-    {
-        ReadInInternalBuffer(8, 0);
-        return BinaryEndianConverter.ToLong(Buffer, endian);
-    }
-
-    /// <inheritdoc/>
-    public ulong ReadULong(EndianType endian = EndianType.LITTLE)
-    {
-        ReadInInternalBuffer(8, 0);
-        return BinaryEndianConverter.ToULong(Buffer, endian);
-    }
-
-    /// <inheritdoc/>
-    public uint ReadUInt32(EndianType endian = EndianType.LITTLE)
-    {
-        ReadInInternalBuffer(4, 0);
-        return BinaryEndianConverter.ToUInt32(Buffer, endian);
-    }
-
-    /// <inheritdoc/>
-    public ushort ReadUInt16(EndianType endian = EndianType.LITTLE)
-    {
-        ReadInInternalBuffer(2, 0);
-        return BinaryEndianConverter.ToUInt16(Buffer, endian);
-    }
-
-    /// <inheritdoc/>
-    public int ReadInt32(EndianType endian = EndianType.LITTLE)
-    {
-        ReadInInternalBuffer(4, 0);
-        return BinaryEndianConverter.ToInt32(Buffer, endian);
-    }
-
-    /// <inheritdoc/>
-    public short ReadInt16(EndianType endian = EndianType.LITTLE)
-    {
-        ReadInInternalBuffer(2, 0);
-        return BinaryEndianConverter.ToInt16(Buffer, endian);
-    }
-
-    /// <inheritdoc/>
-    public Guid ReadGuid(EndianType endian = EndianType.LITTLE)
-    {
-        ReadInInternalBuffer(16, 0);
-        return BinaryEndianConverter.ToGuid(Buffer, 0, endian);
-    }
-
-    /// <inheritdoc/>
-    public float ReadFloat(EndianType endian = EndianType.LITTLE)
-    {
-        ReadInInternalBuffer(4, 0);
-        return BinaryEndianConverter.ToFloat(Buffer, endian);
-    }
-
-    /// <inheritdoc/>
-    public unsafe double ReadDouble(EndianType endian = EndianType.LITTLE)
-    {
-        ReadInInternalBuffer(8, 0);
-        return BinaryEndianConverter.ToDouble(Buffer, endian);
     }
 
     /// <inheritdoc/>

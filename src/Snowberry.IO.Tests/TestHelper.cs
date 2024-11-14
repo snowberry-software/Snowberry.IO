@@ -4,6 +4,7 @@ using Snowberry.IO.Common.Reader.Interfaces;
 using Snowberry.IO.Common.Writer.Interfaces;
 using Snowberry.IO.Reader;
 using Snowberry.IO.Writer;
+using Xunit;
 
 namespace Snowberry.IO.Tests;
 
@@ -21,5 +22,6 @@ public class TestHelper
         using var reader = new EndianStreamReader(mem, null, 0, encoding ?? Encoding.UTF8);
 
         readerAction(reader, mem);
+        Assert.Equal(reader.Length, reader.ActualPosition);
     }
 }

@@ -10,7 +10,7 @@ namespace Snowberry.IO.Benchmarks.Conversions;
 [MediumRunJob]
 public class UInt32ConversionBenchmark
 {
-    private static byte[] _data = { 0xD6, 0x87, 0x00, 0x00, 0xD6, 0x87, 0x00, 0x00 };
+    private static byte[] _data = [0xD6, 0x87, 0x00, 0x00, 0xD6, 0x87, 0x00, 0x00];
 
     [Benchmark]
     public uint BitConverter_UInt32()

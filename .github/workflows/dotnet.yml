@@ -19,6 +19,7 @@ jobs:
           dotnet-version: | 
             7.x
             8.x
+            9.x
       - name: Build
         run: ./build.sh Compile
       - name: Test
@@ -39,5 +40,6 @@ jobs:
           dotnet-version: |
             7.x
             8.x
+            9.x
       - name: Deploy
         run: ./build.sh DeployNuGet -Configuration Release -NuGetPackageFilter Snowberry.IO.*.nupkg
