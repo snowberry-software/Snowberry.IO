@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Snowberry.IO.Common.Interfaces;
+﻿namespace Snowberry.IO.Common.Interfaces;
 
 /// <summary>
 /// Used for metadata about a binary model.

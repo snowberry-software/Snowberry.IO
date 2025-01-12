@@ -22,4 +22,6 @@
             <PackagePath>\</PackagePath>
         </None>
     </ItemGroup>
+
+    <Import Project="../FrameworkCompatibility.props" />
 </Project>

@@ -4,7 +4,7 @@
         <Platforms>AnyCPU;x64;x86</Platforms>
 
         <Authors>Snowberry Software</Authors>
-        <AssemblyVersion>2.1.0.0</AssemblyVersion>
+        <AssemblyVersion>3.0.0.0</AssemblyVersion>
         <VersionPrefix>$(AssemblyVersion)</VersionPrefix>
 
         <IsPackable>true</IsPackable>
@@ -14,7 +14,7 @@
 
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <IncludeBuildOutput>true</IncludeBuildOutput>
-        <Copyright>Copyright © 2024 Snowberry Software</Copyright>
+        <Copyright>Copyright © 2025 Snowberry Software</Copyright>
         <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
         <PackageProjectUrl>https://github.com/snowberry-software/Snowberry.IO</PackageProjectUrl>
 
@@ -49,15 +49,4 @@
         <!-- For GitHub -->
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
     </ItemGroup>
-
-    <!-- Framework Compatibility -->
-    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-        <PackageReference Include="System.Memory" Version="4.6.0" />
-        <PackageReference Include="IndexRange" Version="1.0.3" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
-    </ItemGroup>
-
 </Project>

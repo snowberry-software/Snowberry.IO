@@ -8,31 +8,31 @@ public partial class BaseEndianReader
     public Sha1 ReadSha1()
     {
         Span<byte> bytes = stackalloc byte[Sha1.StructSize];
-        Read(bytes);
+        ReadExactly(bytes);
         return new(bytes);
     }
 
     /// <inheritdoc/>
-    public long ReadLong(EndianType endian = EndianType.LITTLE)
+    public long ReadInt64(EndianType endian = EndianType.LITTLE)
     {
         Span<byte> bytes = stackalloc byte[8];
-        Read(bytes);
-        return BinaryEndianConverter.ToLong(bytes, endian);
+        ReadExactly(bytes);
+        return BinaryEndianConverter.ToInt64(bytes, endian);
     }
 
     /// <inheritdoc/>
-    public ulong ReadULong(EndianType endian = EndianType.LITTLE)
+    public ulong ReadUInt64(EndianType endian = EndianType.LITTLE)
     {
         Span<byte> bytes = stackalloc byte[8];
-        Read(bytes);
-        return BinaryEndianConverter.ToULong(bytes, endian);
+        ReadExactly(bytes);
+        return BinaryEndianConverter.ToUInt64(bytes, endian);
     }
 
     /// <inheritdoc/>
     public uint ReadUInt32(EndianType endian = EndianType.LITTLE)
     {
         Span<byte> bytes = stackalloc byte[4];
-        Read(bytes);
+        ReadExactly(bytes);
         return BinaryEndianConverter.ToUInt32(bytes, endian);
     }
 
@@ -40,7 +40,7 @@ public partial class BaseEndianReader
     public ushort ReadUInt16(EndianType endian = EndianType.LITTLE)
     {
         Span<byte> bytes = stackalloc byte[2];
-        Read(bytes);
+        ReadExactly(bytes);
         return BinaryEndianConverter.ToUInt16(bytes, endian);
     }
 
@@ -48,7 +48,7 @@ public partial class BaseEndianReader
     public int ReadInt32(EndianType endian = EndianType.LITTLE)
     {
         Span<byte> bytes = stackalloc byte[4];
-        Read(bytes);
+        ReadExactly(bytes);
         return BinaryEndianConverter.ToInt32(bytes, endian);
     }
 
@@ -56,7 +56,7 @@ public partial class BaseEndianReader
     public short ReadInt16(EndianType endian = EndianType.LITTLE)
     {
         Span<byte> bytes = stackalloc byte[2];
-        Read(bytes);
+        ReadExactly(bytes);
         return BinaryEndianConverter.ToInt16(bytes, endian);
     }
 
@@ -64,7 +64,7 @@ public partial class BaseEndianReader
     public Guid ReadGuid(EndianType endian = EndianType.LITTLE)
     {
         Span<byte> bytes = stackalloc byte[16];
-        Read(bytes);
+        ReadExactly(bytes);
         return BinaryEndianConverter.ToGuid(bytes, 0, endian);
     }
 
@@ -72,7 +72,7 @@ public partial class BaseEndianReader
     public float ReadFloat(EndianType endian = EndianType.LITTLE)
     {
         Span<byte> bytes = stackalloc byte[4];
-        Read(bytes);
+        ReadExactly(bytes);
         return BinaryEndianConverter.ToFloat(bytes, endian);
     }
 
@@ -80,7 +80,7 @@ public partial class BaseEndianReader
     public unsafe double ReadDouble(EndianType endian = EndianType.LITTLE)
     {
         Span<byte> bytes = stackalloc byte[8];
-        Read(bytes);
+        ReadExactly(bytes);
         return BinaryEndianConverter.ToDouble(bytes, endian);
     }
 }

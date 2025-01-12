@@ -9,7 +9,7 @@ public static partial class BinaryEndianConverter
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    public static unsafe long ToLong(Span<byte> data, int offset, EndianType endian)
+    public static unsafe long ToInt64(Span<byte> data, int offset, EndianType endian)
     {
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<long>(ref data[offset]);
@@ -23,7 +23,7 @@ public static partial class BinaryEndianConverter
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    public static unsafe ulong ToULong(Span<byte> data, int offset, EndianType endian)
+    public static unsafe ulong ToUInt64(Span<byte> data, int offset, EndianType endian)
     {
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<ulong>(ref data[offset]);
@@ -137,7 +137,7 @@ public static partial class BinaryEndianConverter
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<double>(ref data[offset]);
 
-        long temp = ToLong(data, offset, EndianType.BIG);
+        long temp = ToInt64(data, offset, EndianType.BIG);
         return BitConverter.Int64BitsToDouble(temp);
     }
 

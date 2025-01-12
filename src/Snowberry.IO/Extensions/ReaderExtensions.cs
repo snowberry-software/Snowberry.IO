@@ -18,7 +18,7 @@ public static class ReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long ReadLongAt(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
     {
-        return BinaryEndianConverter.ToLong(reader.Buffer, offset, endian);
+        return BinaryEndianConverter.ToInt64(reader.Buffer, offset, endian);
     }
 
     /// <summary>
@@ -31,7 +31,7 @@ public static class ReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong ReadULongAt(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
     {
-        return BinaryEndianConverter.ToULong(reader.Buffer, offset, endian);
+        return BinaryEndianConverter.ToUInt64(reader.Buffer, offset, endian);
     }
 
     /// <summary>

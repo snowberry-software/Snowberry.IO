@@ -12,7 +12,7 @@ public static partial class BinaryEndianConverter
 
 #if NETCOREAPP3_0_OR_GREATER
     [SkipLocalsInit]
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #endif
     public static unsafe int ToInt32(Span<byte> data, EndianType endian)
     {
@@ -25,7 +25,7 @@ public static partial class BinaryEndianConverter
 
 #if NETCOREAPP3_0_OR_GREATER
     [SkipLocalsInit]
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #endif
     public static unsafe uint ToUInt32(Span<byte> data, EndianType endian)
     {
@@ -38,7 +38,7 @@ public static partial class BinaryEndianConverter
 
 #if NETCOREAPP3_0_OR_GREATER
     [SkipLocalsInit]
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #endif
     public static unsafe ushort ToUInt16(Span<byte> data, EndianType endian)
     {
@@ -51,7 +51,7 @@ public static partial class BinaryEndianConverter
 
 #if NETCOREAPP3_0_OR_GREATER
     [SkipLocalsInit]
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #endif
     public static unsafe short ToInt16(Span<byte> data, EndianType endian)
     {
@@ -64,7 +64,7 @@ public static partial class BinaryEndianConverter
 
 #if NETCOREAPP3_0_OR_GREATER
     [SkipLocalsInit]
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #endif
     public static unsafe float ToFloat(Span<byte> data, EndianType endian)
     {
@@ -82,22 +82,22 @@ public static partial class BinaryEndianConverter
 
 #if NETCOREAPP3_0_OR_GREATER
     [SkipLocalsInit]
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #endif
     public static unsafe double ToDouble(Span<byte> data, EndianType endian)
     {
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<double>(ref MemoryMarshal.GetReference(data));
 
-        long temp = ToLong(data, EndianType.BIG);
+        long temp = ToInt64(data, EndianType.BIG);
         return BitConverter.Int64BitsToDouble(temp);
     }
 
 #if NETCOREAPP3_0_OR_GREATER
     [SkipLocalsInit]
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #endif
-    public static unsafe long ToLong(Span<byte> data, EndianType endian)
+    public static unsafe long ToInt64(Span<byte> data, EndianType endian)
     {
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<long>(ref MemoryMarshal.GetReference(data));
@@ -109,9 +109,9 @@ public static partial class BinaryEndianConverter
 
 #if NETCOREAPP3_0_OR_GREATER
     [SkipLocalsInit]
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #endif
-    public static unsafe ulong ToULong(Span<byte> data, EndianType endian)
+    public static unsafe ulong ToUInt64(Span<byte> data, EndianType endian)
     {
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<ulong>(ref MemoryMarshal.GetReference(data));

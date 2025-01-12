@@ -50,7 +50,7 @@ public class SharedTests
         },
         (x, _) =>
         {
-            string? read = x.ReadSizedCString(actualStringPayloadSize);
+            string read = x.ReadSizedCString(actualStringPayloadSize);
             read = x.ReadSizedCString(actualStringPayloadSize);
 
             Assert.NotNull(read);
@@ -71,7 +71,7 @@ public class SharedTests
         },
         (x, _) =>
         {
-            string? read = x.ReadCString();
+            string read = x.ReadCString();
 
             Assert.NotNull(read);
             Assert.Equal(expected, read);
@@ -91,7 +91,7 @@ public class SharedTests
         },
         (x, _) =>
         {
-            string? read = x.ReadString();
+            string read = x.ReadString();
 
             Assert.NotNull(read);
             Assert.Equal(expected, read);
@@ -106,9 +106,11 @@ public class SharedTests
         CreateShared((x, _) =>
         {
             x.WriteLine(lineText);
+            x.WriteLine(lineText);
         },
         (x, _) =>
         {
+            Assert.Equal(lineText, x.ReadLine());
             Assert.Equal(lineText, x.ReadLine());
         });
     }
@@ -331,8 +333,8 @@ public class SharedTests
         },
         (x, _) =>
         {
-            Assert.Equal(value, x.ReadLong());
-            Assert.Equal(value, x.ReadLong(EndianType.BIG));
+            Assert.Equal(value, x.ReadInt64());
+            Assert.Equal(value, x.ReadInt64(EndianType.BIG));
 
             int bufferSize = offset + (sizeof(long) * 2);
             x.EnsureBufferSize(bufferSize);
@@ -363,8 +365,8 @@ public class SharedTests
         },
         (x, _) =>
         {
-            Assert.Equal(value, x.ReadULong());
-            Assert.Equal(value, x.ReadULong(EndianType.BIG));
+            Assert.Equal(value, x.ReadUInt64());
+            Assert.Equal(value, x.ReadUInt64(EndianType.BIG));
 
             int bufferSize = offset + (sizeof(ulong) * 2);
             x.EnsureBufferSize(bufferSize);

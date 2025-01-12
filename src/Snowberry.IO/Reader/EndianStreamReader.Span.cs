@@ -5,6 +5,8 @@ public partial class EndianStreamReader
     /// <inheritdoc/>
     protected override int InternalReadBytes(Span<byte> inBuffer)
     {
+        ThrowIfDisposed();
+
         _ = Stream ?? throw new NullReferenceException(nameof(Stream));
 
         // NOTE(VNC): Important because of region views.
@@ -19,6 +21,26 @@ public partial class EndianStreamReader
 #else
         return Stream.Read(inBuffer);
 #endif
+    }
 
+    /// <inheritdoc/>
+    protected override void InternalReadBytesExactly(Span<byte> inBuffer)
+    {
+        ThrowIfDisposed();
+
+        _ = Stream ?? throw new NullReferenceException(nameof(Stream));
+
+        // NOTE(VNC): Important because of region views.
+        if (!CanReadData)
+            ThrowEndOfStreamException();
+
+#if NET7_0_OR_GREATER
+        Stream.ReadExactly(inBuffer);
+#else
+        int read = InternalReadBytes(inBuffer);
+
+        if (read != inBuffer.Length)
+            ThrowEndOfStreamException();
+#endif
     }
 }

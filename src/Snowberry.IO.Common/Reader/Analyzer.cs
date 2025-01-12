@@ -20,6 +20,5 @@ public abstract class Analyzer
     /// <param name="reader">The current reader instance.</param>
     /// <param name="buffer">The span of bytes to analyze.</param>
     /// <param name="amount">The amount of bytes that were read.</param>
-    /// <param name="offset">The offset in the <paramref name="buffer"/> for the new read data, otherwise <see langword="-1"/>.</param>
-    public abstract void AnalyzeReadBytes(IEndianReader reader, Span<byte> buffer, int amount, long offset = -1);
+    public abstract void AnalyzeReadBytes(IEndianReader reader, Span<byte> buffer, int amount);
 }

@@ -8,10 +8,8 @@ namespace Snowberry.IO.Common.Reader;
 /// </summary>
 public struct RegionRange : IEquatable<RegionRange>
 {
-#pragma warning disable CA1051 // Do not declare visible instance fields
     public long StartPosition;
     public long Size;
-#pragma warning restore CA1051 // Do not declare visible instance fields
 
     /// <summary>
     /// Uses the <see cref="Range"/> to create a new <see cref="RegionRange"/>.

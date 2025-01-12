@@ -13,4 +13,10 @@ public partial interface IEndianReader
     /// of bytes requested if that many bytes are not currently available, or zero if the end of the stream is reached.
     /// </returns>
     int Read(Span<byte> buffer);
+
+    /// <summary>
+    /// Reads bytes from the current stream and advances the position within the stream until the <paramref name="buffer" /> is filled.
+    /// </summary>
+    /// <param name="buffer">A region of memory. When this method returns, the contents of this region are replaced by the bytes read from the current stream.</param>
+    void ReadExactly(Span<byte> buffer);
 }

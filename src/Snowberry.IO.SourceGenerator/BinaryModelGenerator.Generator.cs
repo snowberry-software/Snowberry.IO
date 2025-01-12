@@ -237,8 +237,8 @@ public partial class BinaryModelGenerator
                         SpecialType.System_UInt16 => nameof(IEndianReader.ReadUInt16),
                         SpecialType.System_Int32 => nameof(IEndianReader.ReadInt32),
                         SpecialType.System_UInt32 => nameof(IEndianReader.ReadUInt32),
-                        SpecialType.System_Int64 => nameof(IEndianReader.ReadLong),
-                        SpecialType.System_UInt64 => nameof(IEndianReader.ReadULong),
+                        SpecialType.System_Int64 => nameof(IEndianReader.ReadInt64),
+                        SpecialType.System_UInt64 => nameof(IEndianReader.ReadUInt64),
                         SpecialType.System_Double => nameof(IEndianReader.ReadDouble),
                         SpecialType.System_Single => nameof(IEndianReader.ReadFloat),
                         _ => null

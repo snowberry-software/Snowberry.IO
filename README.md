@@ -57,7 +57,7 @@ writer.BaseStream.Position = 0;
 using var reader = new EndianStreamReader(stream);
 
 _ = reader.ReadInt32(EndianType.BIG);
-_ = reader.ReadLong(EndianType.BIG);
+_ = reader.ReadInt64(EndianType.BIG);
 _ = reader.ReadFloat(EndianType.BIG);
 _ = reader.ReadUInt32(EndianType.BIG);
 _ = reader.ReadDouble(EndianType.BIG);
@@ -79,8 +79,8 @@ var buffer = new byte[] { ... };
 int offset = ...;
 var endianType = EndianType.BIG;
 
-_ = BinaryEndianConverter.ToLong(buffer, endianType);
-_ = BinaryEndianConverter.ToLong(buffer, offset, endianType);
+_ = BinaryEndianConverter.ToInt64(buffer, endianType);
+_ = BinaryEndianConverter.ToInt64(buffer, offset, endianType);
 ```
 
 ## Supported data types

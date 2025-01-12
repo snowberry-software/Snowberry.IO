@@ -57,7 +57,7 @@ public partial class EndianStreamReader : BaseEndianReader
             if (IsRegionViewEnabled)
                 _viewOffset += read;
 
-            Analyzer?.AnalyzeReadBytes(this, buffer.AsSpan(), read, 0);
+            Analyzer?.AnalyzeReadBytes(this, buffer.AsSpan(), read);
 
             destination.Write(buffer, 0, read);
             length -= read;
@@ -105,6 +105,8 @@ public partial class EndianStreamReader : BaseEndianReader
     {
         get
         {
+            ThrowIfDisposed();
+
             _ = Stream ?? throw new NullReferenceException(nameof(Stream));
 
             return GetViewOrPosition(Stream.Position);
@@ -112,6 +114,8 @@ public partial class EndianStreamReader : BaseEndianReader
 
         set
         {
+            ThrowIfDisposed();
+
             _ = Stream ?? throw new NullReferenceException(nameof(Stream));
 
             long position = Stream.Position;
@@ -125,7 +129,7 @@ public partial class EndianStreamReader : BaseEndianReader
     {
         get
         {
-            if (Stream == null)
+            if (Stream == null || Disposed)
                 return false;
 
             return Length > Position;
@@ -147,6 +151,8 @@ public partial class EndianStreamReader : BaseEndianReader
     {
         get
         {
+            ThrowIfDisposed();
+
             _ = Stream ?? throw new NullReferenceException(nameof(Stream));
             return Stream.Position;
         }
@@ -157,6 +163,8 @@ public partial class EndianStreamReader : BaseEndianReader
     {
         get
         {
+            ThrowIfDisposed();
+
             _ = Stream ?? throw new NullReferenceException(nameof(Stream));
             return Stream.Length;
         }
