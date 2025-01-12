@@ -26,12 +26,14 @@ public partial interface IEndianReader : IDisposable
     /// <summary>
     /// Reads a single byte from the current stream.
     /// </summary>
-    /// <remarks>
-    /// This method does not check if the current <see cref="Position"/> is greater than the current <see cref="Length"/>.
-    /// Avoid using this method in loops as it can lead to infinite loops if the end of the stream is reached.
-    /// </remarks>
     /// <returns>The byte read.</returns>
     byte ReadByte();
+
+    /// <summary>
+    /// Reads a signed byte from the current stream.
+    /// </summary>
+    /// <returns>A signed byte read from the current stream.</returns>
+    sbyte ReadSByte();
 
     /// <summary>
     /// Reads a single byte from the current stream, returning -1 if the <see cref="Position"/> is greater than the <see cref="Length"/>.
@@ -52,6 +54,14 @@ public partial interface IEndianReader : IDisposable
     int Read(byte[] buffer, int offset, int byteCount);
 
     /// <summary>
+    /// Reads bytes from the current stream and advances the position within the stream until the specified number of bytes is read.
+    /// </summary>
+    /// <param name="buffer">The byte array to which the data will be read. When this method returns, the specified region of this array is replaced by the bytes read from the current stream.</param>
+    /// <param name="offset">The zero-based byte offset in the <paramref name="buffer"/> at which to begin storing the data read from the stream.</param>
+    /// <param name="byteCount">The exact number of bytes to read from the stream.</param>
+    void ReadExactly(byte[] buffer, int offset, int byteCount);
+
+    /// <summary>
     /// Reads a specified number of bytes from the current stream into the internal buffer.
     /// </summary>
     /// <param name="byteCount">The number of bytes to read.</param>
@@ -66,14 +76,14 @@ public partial interface IEndianReader : IDisposable
     /// Reads a specified number of bytes from the current stream.
     /// </summary>
     /// <param name="count">The number of bytes to read.</param>
-    /// <returns>A byte array containing the read bytes.</returns>
+    /// <returns>A byte array containing the read bytes. This might be less than the number of bytes requested if the end of the stream is reached.</returns>
     byte[] ReadBytes(int count);
 
     /// <summary>
     /// Reads a null-terminated string from the current stream.
     /// </summary>
     /// <returns>A zero-terminated string, or <see langword="null"/> if the end of the stream is reached.</returns>
-    string? ReadCString();
+    string ReadCString();
 
     /// <summary>
     /// Reads a fixed-size null-terminated string from the current stream.
@@ -85,13 +95,13 @@ public partial interface IEndianReader : IDisposable
     /// <param name="size">The size of the string to read.</param>
     /// <param name="adjustPosition">Automatically adjust the <see cref="Position"/> by the unread count of <paramref name="size"/>.</param>
     /// <returns>The fixed-size string.</returns>
-    string? ReadSizedCString(int size, bool adjustPosition = true);
+    string ReadSizedCString(int size, bool adjustPosition = true);
 
     /// <summary>
     /// Reads a size-prefixed string from the current stream.
     /// </summary>
     /// <returns>The size-prefixed string, or <see langword="null"/> if the end of the stream is reached.</returns>
-    string? ReadString();
+    string ReadString();
 
     /// <summary>
     /// Reads a line of characters from the current stream.
@@ -123,14 +133,14 @@ public partial interface IEndianReader : IDisposable
     /// </summary>
     /// <param name="endian">The endianness to use.</param>
     /// <returns>The read 64-bit signed integer.</returns>
-    long ReadLong(EndianType endian = EndianType.LITTLE);
+    long ReadInt64(EndianType endian = EndianType.LITTLE);
 
     /// <summary>
     /// Reads a 64-bit unsigned integer from the current stream with the specified endianness.
     /// </summary>
     /// <param name="endian">The endianness to use.</param>
     /// <returns>The read 64-bit unsigned integer.</returns>
-    ulong ReadULong(EndianType endian = EndianType.LITTLE);
+    ulong ReadUInt64(EndianType endian = EndianType.LITTLE);
 
     /// <summary>
     /// Reads a 32-bit unsigned integer from the current stream with the specified endianness.
@@ -268,9 +278,7 @@ public partial interface IEndianReader : IDisposable
     /// <summary>
     /// Gets the internal buffer of the reader.
     /// </summary>
-#pragma warning disable CA1819 // Properties should not return arrays
     byte[] Buffer { get; }
-#pragma warning restore CA1819 // Properties should not return arrays
 
     /// <summary>
     /// Gets a value indicating whether the reader is disposed.

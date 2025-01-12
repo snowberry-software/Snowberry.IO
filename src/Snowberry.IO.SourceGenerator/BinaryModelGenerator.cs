@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Snowberry.IO.Common;
@@ -30,7 +27,7 @@ public partial class BinaryModelGenerator : IIncrementalGenerator
 
                 namespace {{c_CustomNamespace}}
                 {
-                    // Generated at: {{DateTime.UtcNow.ToString("yyyy-MM-dd")}}
+                    // Generated at: {{DateTime.UtcNow:yyyy-MM-dd}}
 
                     /// <summary>
                     /// Enables the generation of the binary model.

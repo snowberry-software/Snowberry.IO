@@ -9,7 +9,7 @@ namespace Snowberry.IO.Tests;
 
 public class ReaderTests
 {
-    public static Random Random = new();
+    public static readonly Random Random = new();
 
     [Theory]
     [InlineData(0, BaseEndianReader.MinBufferSize)]
@@ -140,5 +140,19 @@ public class ReaderTests
         Assert.Equal(30d, reader.ReadDoubleAt(EndianType.BIG, offset));
         offset += 8;
         Assert.Equal(hash, reader.ReadSha1At(offset));
+    }
+
+    [Fact]
+    private void ReadUntilEndOfStreamException()
+    {
+        var memory = new MemoryStream(
+        [
+            33, 92, 82, 33
+        ]);
+
+        using var reader = new EndianStreamReader(memory);
+        byte[] data = reader.ReadUntilEnd();
+
+        Assert.Throws<EndOfStreamException>(() => reader.ReadInt16());
     }
 }

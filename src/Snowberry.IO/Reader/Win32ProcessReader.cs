@@ -1,6 +1,7 @@
 ﻿using System.Runtime.Versioning;
 using System.Text;
 using Snowberry.IO.Common.Reader;
+using Snowberry.IO.Common.Reader.Interfaces;
 using static Snowberry.IO.Utils.Win32Helper;
 
 namespace Snowberry.IO.Reader;
@@ -46,6 +47,17 @@ public partial class Win32ProcessReader : BaseEndianReader
     protected override int InternalReadBytes(byte[] inBuffer, int offset, int byteCount)
     {
         return InternalReadBytes(inBuffer.AsSpan()[offset..byteCount]);
+    }
+
+    /// <inheritdoc/>
+    protected override void InternalReadBytesExactly(Span<byte> inBuffer)
+    {
+        ThrowIfDisposed();
+
+        int read = InternalReadBytes(inBuffer);
+
+        if (read != inBuffer.Length)
+            ThrowEndOfStreamException();
     }
 
     /// <inheritdoc/>
@@ -106,7 +118,7 @@ public partial class Win32ProcessReader : BaseEndianReader
     /// <inheritdoc />
     public override string ReadCString()
     {
-        long stringPointerPos = ReadLong();
+        long stringPointerPos = ReadInt64();
         long oldPosition = Position;
 
         Position = stringPointerPos;
@@ -122,27 +134,64 @@ public partial class Win32ProcessReader : BaseEndianReader
     {
         GC.SuppressFinalize(this);
 
+        if (!CloseHandleOnDispose)
+            return;
+
         _ = CloseHandle(_processHandle);
     }
 
     /// <inheritdoc/>
-    /// <remarks>Will always return <see langword="0"/>.</remarks>
-    public override long Length => 0;
-
-    /// <inheritdoc/>
-    public override bool CanReadData => _processHandle != IntPtr.Zero;
+    public override bool CanReadData => _processHandle != IntPtr.Zero && !Disposed;
 
     /// <inheritdoc/>
     public override long Position
     {
-        get => _position;
-        set => _position = value;
+        get
+        {
+            ThrowIfDisposed();
+
+            return GetViewOrPosition(_position);
+        }
+
+        set
+        {
+            ThrowIfDisposed();
+
+            long position = _position;
+            SetPosition(ref position, value);
+            _position = position;
+        }
     }
 
     /// <inheritdoc/>
-    public override long ActualPosition => _position;
+    /// <remarks>Will always return <see langword="0"/> if no region view is used.</remarks>
+    public override long Length
+    {
+        get
+        {
+            if (IsRegionViewEnabled)
+                return RegionView.Size;
+
+            return 0;
+        }
+    }
+
+    /// <inheritdoc/>
+    public override long ActualPosition
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _position;
+        }
+    }
 
     /// <inheritdoc/>
     /// <remarks>Will always return <see langword="0"/>.</remarks>
     public override long ActualLength => 0;
+
+    /// <summary>
+    /// Specifies whether the handle should be closed when the reader is disposed.
+    /// </summary>
+    public bool CloseHandleOnDispose { get; set; } = true;
 }

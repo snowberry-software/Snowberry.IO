@@ -7,6 +7,8 @@ public partial class Win32ProcessReader
     /// <inheritdoc/>
     protected override int InternalReadBytes(Span<byte> inBuffer)
     {
+        ThrowIfDisposed();
+
         uint lpflOldProtect = 0u;
         int read = 0;
 
@@ -28,7 +30,7 @@ public partial class Win32ProcessReader
         tempBuffer.CopyTo(inBuffer);
 
         _position += byteCount;
-        Analyzer?.AnalyzeReadBytes(this, inBuffer, byteCount, 0);
+        Analyzer?.AnalyzeReadBytes(this, inBuffer, byteCount);
 
         return byteCount;
     }
