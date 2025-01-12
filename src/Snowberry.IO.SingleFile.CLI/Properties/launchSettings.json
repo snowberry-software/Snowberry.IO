@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Snowberry.IO.SingleFile.CLI": {
+      "commandName": "Project",
+      "commandLineArgs": ""
+    }
+  }
+}

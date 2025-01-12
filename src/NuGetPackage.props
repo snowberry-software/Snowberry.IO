@@ -4,7 +4,7 @@
         <Platforms>AnyCPU;x64;x86</Platforms>
 
         <Authors>Snowberry Software</Authors>
-        <AssemblyVersion>2.1.0.0</AssemblyVersion>
+        <AssemblyVersion>3.0.0.0</AssemblyVersion>
         <VersionPrefix>$(AssemblyVersion)</VersionPrefix>
 
         <IsPackable>true</IsPackable>
@@ -14,7 +14,7 @@
 
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <IncludeBuildOutput>true</IncludeBuildOutput>
-        <Copyright>Copyright © 2024 Snowberry Software</Copyright>
+        <Copyright>Copyright © 2025 Snowberry Software</Copyright>
         <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
         <PackageProjectUrl>https://github.com/snowberry-software/Snowberry.IO</PackageProjectUrl>
 

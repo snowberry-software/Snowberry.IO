@@ -89,7 +89,7 @@ public static partial class BinaryEndianConverter
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<double>(ref MemoryMarshal.GetReference(data));
 
-        long temp = ToLong(data, EndianType.BIG);
+        long temp = ToInt64(data, EndianType.BIG);
         return BitConverter.Int64BitsToDouble(temp);
     }
 
@@ -97,7 +97,7 @@ public static partial class BinaryEndianConverter
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #endif
-    public static unsafe long ToLong(Span<byte> data, EndianType endian)
+    public static unsafe long ToInt64(Span<byte> data, EndianType endian)
     {
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<long>(ref MemoryMarshal.GetReference(data));
@@ -111,7 +111,7 @@ public static partial class BinaryEndianConverter
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #endif
-    public static unsafe ulong ToULong(Span<byte> data, EndianType endian)
+    public static unsafe ulong ToUInt64(Span<byte> data, EndianType endian)
     {
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<ulong>(ref MemoryMarshal.GetReference(data));

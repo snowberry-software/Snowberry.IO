@@ -17,7 +17,7 @@ public partial class BaseEndianReader
     {
         Span<byte> bytes = stackalloc byte[8];
         ReadExactly(bytes);
-        return BinaryEndianConverter.ToLong(bytes, endian);
+        return BinaryEndianConverter.ToInt64(bytes, endian);
     }
 
     /// <inheritdoc/>
@@ -25,7 +25,7 @@ public partial class BaseEndianReader
     {
         Span<byte> bytes = stackalloc byte[8];
         ReadExactly(bytes);
-        return BinaryEndianConverter.ToULong(bytes, endian);
+        return BinaryEndianConverter.ToUInt64(bytes, endian);
     }
 
     /// <inheritdoc/>
