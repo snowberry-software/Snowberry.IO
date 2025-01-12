@@ -131,7 +131,7 @@ public class SharedTests
         },
         (x, _) =>
         {
-            Assert.Equal(value, (sbyte)x.ReadByte());
+            Assert.Equal(value, x.ReadSByte());
         });
     }
 
