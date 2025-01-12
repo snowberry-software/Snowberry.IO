@@ -81,6 +81,8 @@ public partial class Win32ProcessReader : BaseEndianReader
     /// <returns>Whether the dynamic library got successfully injected.</returns>
     public bool InjectDLL(string filePath)
     {
+        ThrowIfDisposed();
+
         _ = filePath ?? throw new ArgumentNullException(nameof(filePath));
 
         filePath = Path.GetFullPath(filePath);
@@ -133,6 +135,8 @@ public partial class Win32ProcessReader : BaseEndianReader
     public override void Dispose()
     {
         GC.SuppressFinalize(this);
+
+        Disposed = true;
 
         if (!CloseHandleOnDispose)
             return;

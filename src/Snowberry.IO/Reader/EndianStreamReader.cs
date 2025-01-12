@@ -38,6 +38,8 @@ public partial class EndianStreamReader : BaseEndianReader
     /// <inheritdoc/>
     public override void CopyTo(Stream destination)
     {
+        ThrowIfDisposed();
+
         _ = destination ?? throw new ArgumentNullException(nameof(destination));
         _ = Stream ?? throw new NullReferenceException(nameof(Stream));
 
@@ -47,6 +49,8 @@ public partial class EndianStreamReader : BaseEndianReader
     /// <inheritdoc/>
     public override void CopyTo(Stream destination, int length, int bufferSize = 0x14000)
     {
+        ThrowIfDisposed();
+
         _ = destination ?? throw new ArgumentNullException(nameof(destination));
         _ = Stream ?? throw new NullReferenceException(nameof(Stream));
 
@@ -80,12 +84,13 @@ public partial class EndianStreamReader : BaseEndianReader
         if (Stream == null)
             return;
 
+        Disposed = true;
+        
         if (KeepStreamOpen)
             return;
 
         Stream.Dispose();
         Stream.Close();
-        Disposed = true;
     }
 
     /// <inheritdoc />
