@@ -63,7 +63,8 @@ partial class Build : NukeBuild
 
         Logging.Level = LogLevel.Normal;
 
-        Log.Information("Building Snowberry.IO ({Configuration}) using version Nuke {NukeVersion}.",
+        Log.Information("Building {Name} ({Configuration}) using version Nuke {NukeVersion}.",
+            Solution.Name,
             Configuration,
             typeof(NukeBuild).Assembly.GetName().Version);
 
