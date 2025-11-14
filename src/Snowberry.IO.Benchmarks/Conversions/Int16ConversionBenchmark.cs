@@ -19,7 +19,7 @@ public class Int16ConversionBenchmark
     }
 
     [Benchmark]
-    public unsafe short BinaryEndianConverter_Int16()
+    public short BinaryEndianConverter_Int16()
     {
         return BinaryEndianConverter.ToInt16(_data.AsSpan(), EndianType.LITTLE);
     }
@@ -31,7 +31,7 @@ public class Int16ConversionBenchmark
     }
 
     [Benchmark]
-    public unsafe short BinaryEndianConverter_Offset_Int16()
+    public short BinaryEndianConverter_Offset_Int16()
     {
         return BinaryEndianConverter.ToInt16(_data.AsSpan(), 2, EndianType.LITTLE);
     }
@@ -45,7 +45,7 @@ public class Int16ConversionBenchmark
     }
 
     [Benchmark]
-    public unsafe short BinaryEndianConverter_BigE_Int16()
+    public short BinaryEndianConverter_BigE_Int16()
     {
         return BinaryEndianConverter.ToInt16(_data.AsSpan(), EndianType.BIG);
     }
@@ -59,7 +59,7 @@ public class Int16ConversionBenchmark
     }
 
     [Benchmark]
-    public unsafe short BinaryEndianConverter_Offset_BigE_Int16()
+    public short BinaryEndianConverter_Offset_BigE_Int16()
     {
         return BinaryEndianConverter.ToInt16(_data.AsSpan(), 2, EndianType.BIG);
     }

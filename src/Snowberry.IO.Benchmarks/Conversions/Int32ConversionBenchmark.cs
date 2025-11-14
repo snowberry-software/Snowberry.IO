@@ -19,7 +19,7 @@ public class Int32ConversionBenchmark
     }
 
     [Benchmark]
-    public unsafe int BinaryEndianConverter_Int32()
+    public int BinaryEndianConverter_Int32()
     {
         return BinaryEndianConverter.ToInt32(_data.AsSpan(), EndianType.LITTLE);
     }
@@ -31,7 +31,7 @@ public class Int32ConversionBenchmark
     }
 
     [Benchmark]
-    public unsafe int BinaryEndianConverter_Offset_Int32()
+    public int BinaryEndianConverter_Offset_Int32()
     {
         return BinaryEndianConverter.ToInt32(_data.AsSpan(), 4, EndianType.LITTLE);
     }
@@ -45,7 +45,7 @@ public class Int32ConversionBenchmark
     }
 
     [Benchmark]
-    public unsafe int BinaryEndianConverter_BigE_Int32()
+    public int BinaryEndianConverter_BigE_Int32()
     {
         return BinaryEndianConverter.ToInt32(_data.AsSpan(), EndianType.BIG);
     }
@@ -59,7 +59,7 @@ public class Int32ConversionBenchmark
     }
 
     [Benchmark]
-    public unsafe int BinaryEndianConverter_Offset_BigE_Int32()
+    public int BinaryEndianConverter_Offset_BigE_Int32()
     {
         return BinaryEndianConverter.ToInt32(_data.AsSpan(), 4, EndianType.BIG);
     }

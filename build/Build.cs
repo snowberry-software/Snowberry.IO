@@ -1,22 +1,16 @@
 using System;
-using System.Linq;
+using System.Runtime.InteropServices;
 using Nuke.Common;
-using Nuke.Common.CI;
 using Nuke.Common.Execution;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Tooling;
-using Nuke.Common.Utilities.Collections;
-using static Nuke.Common.EnvironmentInfo;
-using static Nuke.Common.IO.FileSystemTasks;
-using static Nuke.Common.IO.PathConstruction;
 using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Tools.MSBuild;
+using Nuke.Common.Utilities.Collections;
 using Serilog;
-using System.Runtime.InteropServices;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
-using System.Drawing;
 
 namespace _build;
 
@@ -69,7 +63,8 @@ partial class Build : NukeBuild
 
         Logging.Level = LogLevel.Normal;
 
-        Log.Information("Building FIFES ({Configuration}) using version Nuke {NukeVersion}.",
+        Log.Information("Building {Name} ({Configuration}) using version Nuke {NukeVersion}.",
+            Solution.Name,
             Configuration,
             typeof(NukeBuild).Assembly.GetName().Version);
 

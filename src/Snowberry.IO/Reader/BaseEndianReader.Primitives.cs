@@ -77,7 +77,7 @@ public partial class BaseEndianReader
     }
 
     /// <inheritdoc/>
-    public unsafe double ReadDouble(EndianType endian = EndianType.LITTLE)
+    public double ReadDouble(EndianType endian = EndianType.LITTLE)
     {
         Span<byte> bytes = stackalloc byte[8];
         ReadExactly(bytes);
