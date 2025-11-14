@@ -218,7 +218,7 @@ public class ReaderTests
         int offset = 0;
         Assert.Equal(30, reader.ReadInt32At(EndianType.BIG, offset));
         offset += 4;
-        Assert.Equal(30L, reader.ReadLongAt(EndianType.BIG, offset));
+        Assert.Equal(30L, reader.ReadInt64At(EndianType.BIG, offset));
         offset += 8;
         Assert.Equal(30F, reader.ReadFloatAt(EndianType.BIG, offset));
         offset += 4;

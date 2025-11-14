@@ -340,8 +340,8 @@ public class SharedTests
             x.EnsureBufferSize(bufferSize);
             x.ReadInInternalBuffer(bufferSize, 0);
 
-            Assert.Equal(value, x.ReadLongAt(offset: offset));
-            Assert.Equal(value, x.ReadLongAt(EndianType.BIG, offset + sizeof(long)));
+            Assert.Equal(value, x.ReadInt64At(offset: offset));
+            Assert.Equal(value, x.ReadInt64At(EndianType.BIG, offset + sizeof(long)));
         });
     }
 
@@ -372,8 +372,8 @@ public class SharedTests
             x.EnsureBufferSize(bufferSize);
             x.ReadInInternalBuffer(bufferSize, 0);
 
-            Assert.Equal(value, x.ReadULongAt(offset: offset));
-            Assert.Equal(value, x.ReadULongAt(EndianType.BIG, offset + sizeof(ulong)));
+            Assert.Equal(value, x.ReadUInt64At(offset: offset));
+            Assert.Equal(value, x.ReadUInt64At(EndianType.BIG, offset + sizeof(ulong)));
         });
     }
 

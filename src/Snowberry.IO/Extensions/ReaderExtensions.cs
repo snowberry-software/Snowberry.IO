@@ -16,7 +16,7 @@ public static class ReaderExtensions
     /// <param name="offset">The starting position within the reader's buffer.</param>
     /// <returns>The 64-bit signed integer.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static long ReadLongAt(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
+    public static long ReadInt64At(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
     {
         return BinaryEndianConverter.ToInt64(reader.Buffer, offset, endian);
     }
@@ -29,7 +29,7 @@ public static class ReaderExtensions
     /// <param name="offset">The starting position within the reader's buffer.</param>
     /// <returns>The 64-bit unsigned integer.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong ReadULongAt(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
+    public static ulong ReadUInt64At(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
     {
         return BinaryEndianConverter.ToUInt64(reader.Buffer, offset, endian);
     }
