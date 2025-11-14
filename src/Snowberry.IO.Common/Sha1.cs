@@ -76,6 +76,9 @@ public struct Sha1 : IEquatable<Sha1>
         if (data.Length < 20)
             throw new ArgumentException($"{nameof(Sha1)} must be a minimum of {StructSize} bytes in length", nameof(data));
 
+        if (data.Length > 20)
+            throw new ArgumentException($"{nameof(Sha1)} cannot be more than {StructSize} bytes in length", nameof(data));
+
         _a = (uint)(data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24));
         _b = (uint)(data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
         _c = (uint)(data[8] | (data[9] << 8) | (data[10] << 16) | (data[11] << 24));

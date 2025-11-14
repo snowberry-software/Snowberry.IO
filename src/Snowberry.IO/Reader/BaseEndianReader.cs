@@ -29,6 +29,7 @@ public abstract partial class BaseEndianReader : IEndianReader
     protected int _maxCharsSize;
 
     protected readonly bool _2BytesPerChar;
+    protected readonly bool _4bytesPerChar;
 
     protected StringBuilder _stringBuilder = new();
 
@@ -71,6 +72,7 @@ public abstract partial class BaseEndianReader : IEndianReader
         // For Encodings that always use 2 bytes per char (or more),
         // special case them here to make Read() & Peek() faster.
         _2BytesPerChar = encoding is UnicodeEncoding;
+        _4bytesPerChar = encoding is UTF32Encoding;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -112,6 +114,11 @@ public abstract partial class BaseEndianReader : IEndianReader
     {
         ThrowIfDisposed();
 
+        if (bufferSize < 0)
+            throw new ArgumentOutOfRangeException(nameof(bufferSize), "Buffer size cannot be negative.");
+
+        bufferSize = Math.Max(MinBufferSize, bufferSize);
+
         if (Buffer == null || Buffer.Length < bufferSize)
             Buffer = new byte[bufferSize];
     }
@@ -120,6 +127,9 @@ public abstract partial class BaseEndianReader : IEndianReader
     public virtual void EnableRegionView(RegionRange region)
     {
         ThrowIfDisposed();
+
+        if (region.Size > ActualLength)
+            throw new ArgumentOutOfRangeException(nameof(region), "The region size exceeds the actual length of the reader.");
 
         RegionView = region;
 

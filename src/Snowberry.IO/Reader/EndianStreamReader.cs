@@ -51,6 +51,12 @@ public partial class EndianStreamReader : BaseEndianReader
     {
         ThrowIfDisposed();
 
+        if (length < 0)
+            throw new ArgumentOutOfRangeException(nameof(length), "Length must be non-negative.");
+
+        if (bufferSize < 0)
+            throw new ArgumentOutOfRangeException(nameof(bufferSize), "Buffer size must be non-negative.");
+
         _ = destination ?? throw new ArgumentNullException(nameof(destination));
         _ = Stream ?? throw new NullReferenceException(nameof(Stream));
 
@@ -85,12 +91,11 @@ public partial class EndianStreamReader : BaseEndianReader
             return;
 
         Disposed = true;
-        
+
         if (KeepStreamOpen)
             return;
 
         Stream.Dispose();
-        Stream.Close();
     }
 
     /// <inheritdoc />

@@ -19,7 +19,7 @@ public class Int64ConversionBenchmark
     }
 
     [Benchmark]
-    public unsafe long BinaryEndianConverter_Int64()
+    public long BinaryEndianConverter_Int64()
     {
         return BinaryEndianConverter.ToInt64(_data.AsSpan(), EndianType.LITTLE);
     }
@@ -31,7 +31,7 @@ public class Int64ConversionBenchmark
     }
 
     [Benchmark]
-    public unsafe long BinaryEndianConverter_Offset_Int64()
+    public long BinaryEndianConverter_Offset_Int64()
     {
         return BinaryEndianConverter.ToInt64(_data.AsSpan(), 4, EndianType.LITTLE);
     }
@@ -45,7 +45,7 @@ public class Int64ConversionBenchmark
     }
 
     [Benchmark]
-    public unsafe long BinaryEndianConverter_BigE_Int64()
+    public long BinaryEndianConverter_BigE_Int64()
     {
         return BinaryEndianConverter.ToInt64(_data.AsSpan(), EndianType.BIG);
     }
@@ -59,7 +59,7 @@ public class Int64ConversionBenchmark
     }
 
     [Benchmark]
-    public unsafe long BinaryEndianConverter_Offset_BigE_Int64()
+    public long BinaryEndianConverter_Offset_BigE_Int64()
     {
         return BinaryEndianConverter.ToInt64(_data.AsSpan(), 4, EndianType.BIG);
     }

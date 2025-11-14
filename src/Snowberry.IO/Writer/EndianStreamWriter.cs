@@ -37,7 +37,7 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
     }
 
     /// <inheritdoc/>
-    public unsafe IEndianWriter Write(Guid value, EndianType endian = EndianType.LITTLE)
+    public IEndianWriter Write(Guid value, EndianType endian = EndianType.LITTLE)
     {
         byte[] guidBytes = value.ToByteArray();
 
@@ -212,7 +212,7 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
 #endif
 
         if (byteCount > size)
-            throw new IOException($"The byte count of the text `{byteCount}` is greater than the specified size `{size}`.\nCheck the data of the text or the encoding that is used.");
+            throw new ArgumentOutOfRangeException($"The byte count of the text `{byteCount}` is greater than the specified size `{size}`.\nCheck the data of the text or the encoding that is used.");
 
         WriteStringCharacters(text);
 
@@ -240,6 +240,9 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IEndianWriter WritePadding(byte alignment)
     {
+        if (alignment <= 0)
+            throw new ArgumentOutOfRangeException(nameof(alignment), "Alignment must be greater than zero.");
+
         long padding = BinaryUtils.CalculatePadding(BaseStream.Position, alignment);
         base.Write(new byte[padding]);
 
@@ -254,7 +257,7 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
 #if NETSTANDARD2_0
         base.Write(Encoding.GetBytes(text));
 #else
-        base.Write(text.AsSpan());
+        base.Write(Encoding.GetBytes(text).AsSpan());
 #endif
 
         return this;
@@ -263,31 +266,11 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
     /// <inheritdoc/>
     public IEndianWriter WriteCString(string text)
     {
-        WriteStringCharacters(text);
-        base.Write((byte)0);
+        if (text == null)
+            throw new ArgumentNullException(nameof(text));
 
+        WriteStringCharacters($"{text}\0");
         return this;
-    }
-
-    // NOTE(VNC):
-    // 
-    // It will always use the `Write(short, EndianType)` method when using the `EndianStreamWriter` type directly to write a single byte,
-    // even when directly casting the parameter to a byte.
-    // This seems to fix the issue.
-    //
-
-    /// <inheritdoc cref="BinaryWriter.Write(byte)"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public new void Write(byte value)
-    {
-        base.Write(value);
-    }
-
-    /// <inheritdoc cref="BinaryWriter.Write(sbyte)"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public new void Write(sbyte value)
-    {
-        base.Write(value);
     }
 
     /// <inheritdoc/>
@@ -342,7 +325,36 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
         return this;
     }
 
+    // NOTE(VNC):
+    // 
+    // It will always use the `Write(short, EndianType)` method when using the `EndianStreamWriter` type directly to write a single byte,
+    // even when directly casting the parameter to a byte.
+    //
+    // This seems to fix the issue.
+    //
+
+    /// <inheritdoc cref="BinaryWriter.Write(byte)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public new void Write(byte value)
+    {
+        base.Write(value);
+    }
+
+    /// <inheritdoc cref="BinaryWriter.Write(sbyte)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public new void Write(sbyte value)
+    {
+        base.Write(value);
+    }
+
 #if NETSTANDARD2_0_OR_GREATER
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public new void Write7BitEncodedInt(int value)
+    {
+        base.Write7BitEncodedInt(value);
+    }
+
     private void Write7BitEncodedInt64(long value)
     {
         // Licensed to the .NET Foundation under one or more agreements.

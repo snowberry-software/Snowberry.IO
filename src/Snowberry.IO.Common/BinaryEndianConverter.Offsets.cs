@@ -11,6 +11,12 @@ public static partial class BinaryEndianConverter
 #endif
     public static unsafe long ToInt64(Span<byte> data, int offset, EndianType endian)
     {
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be negative.");
+
+        if (data.Length < offset + 8)
+            throw new ArgumentOutOfRangeException(nameof(offset), $"Not enough data to read an {nameof(Int64)}.");
+
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<long>(ref data[offset]);
 
@@ -25,6 +31,12 @@ public static partial class BinaryEndianConverter
 #endif
     public static unsafe ulong ToUInt64(Span<byte> data, int offset, EndianType endian)
     {
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be negative.");
+
+        if (data.Length < offset + 8)
+            throw new ArgumentOutOfRangeException(nameof(offset), $"Not enough data to read an {nameof(UInt64)}.");
+
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<ulong>(ref data[offset]);
 
@@ -39,6 +51,12 @@ public static partial class BinaryEndianConverter
 #endif
     public static unsafe ushort ToUInt16(Span<byte> data, int offset, EndianType endian)
     {
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be negative.");
+
+        if (data.Length < offset + 2)
+            throw new ArgumentOutOfRangeException(nameof(offset), $"Not enough data to read an {nameof(UInt16)}.");
+
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<ushort>(ref data[offset]);
 
@@ -52,6 +70,12 @@ public static partial class BinaryEndianConverter
 #endif
     public static unsafe short ToInt16(Span<byte> data, int offset, EndianType endian)
     {
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be negative.");
+
+        if (data.Length < offset + 2)
+            throw new ArgumentOutOfRangeException(nameof(offset), $"Not enough data to read an {nameof(Int16)}.");
+
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<short>(ref data[offset]);
 
@@ -65,6 +89,12 @@ public static partial class BinaryEndianConverter
 #endif
     public static unsafe uint ToUInt32(Span<byte> data, int offset, EndianType endian)
     {
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be negative.");
+
+        if (data.Length < offset + 4)
+            throw new ArgumentOutOfRangeException(nameof(offset), $"Not enough data to read an {nameof(UInt32)}.");
+
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<uint>(ref data[offset]);
 
@@ -78,6 +108,12 @@ public static partial class BinaryEndianConverter
 #endif
     public static unsafe int ToInt32(Span<byte> data, int offset, EndianType endian)
     {
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be negative.");
+
+        if (data.Length < offset + 4)
+            throw new ArgumentOutOfRangeException(nameof(offset), $"Not enough data to read an {nameof(Int32)}.");
+
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<int>(ref data[offset]);
 
@@ -91,6 +127,12 @@ public static partial class BinaryEndianConverter
 #endif
     public static Guid ToGuid(Span<byte> data, int offset, EndianType endian)
     {
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be negative.");
+
+        if (data.Length < offset + 16)
+            throw new ArgumentOutOfRangeException(nameof(offset), $"Not enough data to read a {nameof(Guid)}.");
+
         if (endian == EndianType.BIG)
         {
             return new(
@@ -113,8 +155,14 @@ public static partial class BinaryEndianConverter
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    public static unsafe float ToFloat(Span<byte> data, int offset, EndianType endian)
+    public static float ToFloat(Span<byte> data, int offset, EndianType endian)
     {
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be negative.");
+
+        if (data.Length < offset + 4)
+            throw new ArgumentOutOfRangeException(nameof(offset), $"Not enough data to read a {nameof(Single)}.");
+
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<float>(ref data[offset]);
 
@@ -132,8 +180,14 @@ public static partial class BinaryEndianConverter
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    public static unsafe double ToDouble(Span<byte> data, int offset, EndianType endian)
+    public static double ToDouble(Span<byte> data, int offset, EndianType endian)
     {
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be negative.");
+
+        if (data.Length < offset + 8)
+            throw new ArgumentOutOfRangeException(nameof(offset), $"Not enough data to read a {nameof(Double)}.");
+
         if (endian == EndianType.LITTLE)
             return Unsafe.ReadUnaligned<double>(ref data[offset]);
 

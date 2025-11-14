@@ -23,6 +23,11 @@ public partial class BaseEndianReader
     }
 
     /// <inheritdoc/>
+#if NETCOREAPP3_0_OR_GREATER
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+#else
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
     public sbyte ReadSByte()
     {
         return (sbyte)ReadByte();
@@ -80,6 +85,9 @@ public partial class BaseEndianReader
     /// <inheritdoc/>
     public byte[] ReadBytes(int count)
     {
+        if (count < 0)
+            throw new ArgumentOutOfRangeException(nameof(count), "Count must be non-negative.");
+
         if (count == 0)
             return Array.Empty<byte>();
 
@@ -97,6 +105,15 @@ public partial class BaseEndianReader
             numRead += read;
             count -= read;
         } while (count > 0);
+
+        if (result.Length != numRead)
+        {
+#if NETCOREAPP
+            result = result[..numRead];
+#else
+            Array.Resize(ref result, numRead);
+#endif
+        }
 
         return result;
     }
@@ -122,6 +139,19 @@ public partial class BaseEndianReader
         if (stringLength == 0)
             return string.Empty;
 
+        if (stringLength <= MaxCharBytesSize)
+        {
+#if !NETSTANDARD2_0
+            Span<byte> smallStringBytes = stackalloc byte[stringLength];
+            ReadExactly(smallStringBytes);
+            return _encoding.GetString(smallStringBytes);
+#else
+            byte[] smallStringBytes = new byte[stringLength];
+            ReadExactly(smallStringBytes, 0, stringLength);
+            return _encoding.GetString(smallStringBytes);
+#endif
+        }
+
         int position = 0;
         int n;
         int readLength;
@@ -139,13 +169,6 @@ public partial class BaseEndianReader
 
             if (n == 0)
                 ThrowEndOfStreamException();
-
-            if (position == 0 && n == stringLength)
-#if NETSTANDARD2_0
-                return _encoding.GetString(charBytes[..n].ToArray());
-#else
-                return _encoding.GetString(charBytes[..n]);
-#endif
 
 #if NETSTANDARD2_0
             int charsRead = _decoder.GetChars(charBytes[..n].ToArray(), 0, n, _charBuffer, 0);
@@ -169,35 +192,28 @@ public partial class BaseEndianReader
 
         _stringBuilder.Clear();
 
+        int value = 0;
+
+        var decoder = _encoding.GetDecoder();
+        Span<byte> singleByteSpan = stackalloc byte[1];
+        Span<char> decodedCharSpan = stackalloc char[_maxCharsSize];
+
+        while (value is not '\r' and not '\n')
         {
-            // NOTE(VNC): Character value...
-            int value = 0;
+            value = ReadByteSafe();
 
-            var decoder = _encoding.GetDecoder();
-            Span<byte> singleByteSpan = stackalloc byte[1];
-            Span<char> decodedCharSpan = stackalloc char[_maxCharsSize];
+            if (value == -1)
+                break;
 
-            //if (!_encoding.IsSingleByte)
-            //decoder = _encoding.GetDecoder();
+            if (value == '\r' || value == '\n' || !CanReadData)
+                break;
 
-            while (value is not '\r' and not '\n')
-            {
-                value = ReadByteSafe();
-
-                if (value == -1)
-                    break;
-
-                if (value == '\r' || value == '\n' || !CanReadData)
-                    break;
-
-                singleByteSpan[0] = (byte)value;
-                AppendCharacters(decoder, singleByteSpan, decodedCharSpan, out _);
-            }
-
-            // CR LF
-            if (value == '\r' && CanReadData)
-                ReadByte();
+            singleByteSpan[0] = (byte)value;
+            AppendCharacters(decoder, singleByteSpan, decodedCharSpan, out _);
         }
+
+        if (value == '\r' && CanReadData)
+            ReadByte();
 
         return _stringBuilder.ToString();
     }
@@ -210,20 +226,91 @@ public partial class BaseEndianReader
 
         _stringBuilder.Clear();
 
+        var decoder = _encoding.GetDecoder();
+        Span<char> decodedCharSpan = stackalloc char[_maxCharsSize];
+
+        if (_2BytesPerChar)
         {
-            var decoder = _encoding.GetDecoder();
-            Span<byte> singleByteSpan = stackalloc byte[1];
-            Span<char> decodedCharSpan = stackalloc char[_maxCharsSize];
+            Span<byte> twoByteSpan = stackalloc byte[2];
+            while (true)
+            {
+                int value;
+                if (Position + 2 <= Length)
+                {
+                    value = ReadInt16();
+
+                    if (value == 0)
+                        break;
+
+                    twoByteSpan[0] = (byte)(value & 0xFF);
+                    twoByteSpan[1] = (byte)((value >> 8) & 0xFF);
+                }
+                else
+                {
+                    throw new IOException("CString is not properly terminated.");
+                }
+
+                AppendCharacters(decoder, twoByteSpan, decodedCharSpan, out _);
+            }
+        }
+        else if (_4bytesPerChar)
+        {
+            Span<byte> fourByteSpan = stackalloc byte[4];
+            while (true)
+            {
+                int value;
+                if (Position + 4 <= Length)
+                {
+                    value = ReadInt32();
+
+                    if (value == 0)
+                        break;
+
+                    fourByteSpan[0] = (byte)(value & 0xFF);
+                    fourByteSpan[1] = (byte)((value >> 8) & 0xFF);
+                    fourByteSpan[2] = (byte)((value >> 16) & 0xFF);
+                    fourByteSpan[3] = (byte)((value >> 24) & 0xFF);
+                }
+                else
+                {
+                    throw new IOException("CString is not properly terminated.");
+                }
+
+                AppendCharacters(decoder, fourByteSpan, decodedCharSpan, out _);
+            }
+        }
+        else
+        {
+            const int chunkSize = 128;
+            Span<byte> chunkBuffer = stackalloc byte[chunkSize];
 
             while (true)
             {
-                int value = ReadByteSafe();
+                long remainingInStream = Length - Position;
+                int toRead = (int)Math.Min(chunkSize, remainingInStream);
 
-                if (value is -1 or 0)
+                if (toRead == 0)
                     break;
 
-                singleByteSpan[0] = (byte)value;
-                AppendCharacters(decoder, singleByteSpan, decodedCharSpan, out _);
+                int bytesRead = Read(chunkBuffer[..toRead]);
+
+                if (bytesRead == 0)
+                    break;
+
+                int nullIndex = chunkBuffer[..bytesRead].IndexOf((byte)0);
+
+                if (nullIndex >= 0)
+                {
+                    if (nullIndex > 0)
+                    {
+                        AppendCharacters(decoder, chunkBuffer[..nullIndex], decodedCharSpan, out _);
+                    }
+
+                    Position -= bytesRead - nullIndex - 1;
+                    break;
+                }
+
+                AppendCharacters(decoder, chunkBuffer[..bytesRead], decodedCharSpan, out _);
             }
         }
 
@@ -233,6 +320,15 @@ public partial class BaseEndianReader
     /// <inheritdoc/>
     public string ReadSizedCString(int size, bool adjustPosition = true)
     {
+        if (size < 0)
+            throw new ArgumentOutOfRangeException(nameof(size), "Size must be non-negative.");
+
+        if (size > Length)
+            throw new ArgumentOutOfRangeException(nameof(size), "Size can't be greater than the stream length.");
+
+        if (size == 0)
+            return string.Empty;
+
         _stringBuilder.Clear();
 
         var decoder = _encoding.GetDecoder();
@@ -242,11 +338,9 @@ public partial class BaseEndianReader
 
         int readLength;
         int n;
-        int startSize = size;
 
         do
         {
-
             readLength = size > MaxCharBytesSize ? MaxCharBytesSize : size;
             n = Read(charBytes[..readLength]);
 
@@ -255,8 +349,12 @@ public partial class BaseEndianReader
 
             size -= n;
 
-            int endIndex = charBytes.IndexOf<byte>(0);
-            AppendCharacters(decoder, endIndex > 0 ? charBytes[..endIndex] : charBytes, decodedCharSpan, out int decodedCharCount);
+            int endIndex = charBytes[..n].IndexOf((byte)0);
+
+            if (endIndex == 0)
+                break;
+
+            AppendCharacters(decoder, endIndex > 0 ? charBytes[..endIndex] : charBytes[..n], decodedCharSpan, out _);
 
             if (size > 0 && endIndex != -1)
             {
@@ -297,6 +395,9 @@ public partial class BaseEndianReader
 #endif
     public void ReadAlignment(byte alignment)
     {
+        if (alignment <= 0)
+            throw new ArgumentOutOfRangeException(nameof(alignment), "Alignment must be greater than 0.");
+
         long position = Position;
         BinaryUtils.ApplyAlignment(ref position, alignment);
         Position = position;
@@ -305,8 +406,44 @@ public partial class BaseEndianReader
     /// <inheritdoc/>
     public byte[] ReadUntilEnd(int maxBufferSize = 16 * 1024)
     {
-        byte[] buffer = new byte[maxBufferSize];
+        if (maxBufferSize <= 0)
+            throw new ArgumentOutOfRangeException(nameof(maxBufferSize), "Max buffer size must be greater than 0.");
 
+        long remaining = Length - Position;
+
+        if (remaining is > 0 and <= int.MaxValue)
+        {
+            int exactSize = (int)remaining;
+            byte[] result = new byte[exactSize];
+
+#if !NETSTANDARD2_0
+            ReadExactly(result.AsSpan());
+#else
+            ReadExactly(result, 0, exactSize);
+#endif
+            return result;
+        }
+
+#if NETCOREAPP || NETSTANDARD2_1
+        byte[]? buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(maxBufferSize);
+        try
+        {
+            using var ms = new MemoryStream();
+
+            int read;
+            while ((read = Read(buffer, 0, Math.Min(maxBufferSize, buffer.Length))) > 0)
+            {
+                ms.Write(buffer, 0, read);
+            }
+
+            return ms.ToArray();
+        }
+        finally
+        {
+            System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+        }
+#else
+        byte[] buffer = new byte[maxBufferSize];
         using var ms = new MemoryStream();
 
         int read;
@@ -316,6 +453,7 @@ public partial class BaseEndianReader
         }
 
         return ms.ToArray();
+#endif
     }
 
     /// <inheritdoc/>
@@ -325,7 +463,7 @@ public partial class BaseEndianReader
     }
 
     /// <inheritdoc/>
-    public virtual long Read7BitEncodedLong()
+    public long Read7BitEncodedLong()
     {
         long output = 0;
         int shiftVariable = 0;
@@ -346,7 +484,7 @@ public partial class BaseEndianReader
     }
 
     /// <inheritdoc/>
-    public virtual int Read7BitEncodedInt()
+    public int Read7BitEncodedInt()
     {
         int output = 0;
         int shiftVariable = 0;
