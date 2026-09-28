@@ -18,7 +18,7 @@ public static class ReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long ReadInt64At(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
     {
-        return BinaryEndianConverter.ToInt64(reader.Buffer, offset, endian);
+        return BinaryEndianConverter.ToInt64(reader.Buffer.Span, offset, endian);
     }
 
     /// <summary>
@@ -31,7 +31,7 @@ public static class ReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong ReadUInt64At(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
     {
-        return BinaryEndianConverter.ToUInt64(reader.Buffer, offset, endian);
+        return BinaryEndianConverter.ToUInt64(reader.Buffer.Span, offset, endian);
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ public static class ReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint ReadUInt32At(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
     {
-        return BinaryEndianConverter.ToUInt32(reader.Buffer, offset, endian);
+        return BinaryEndianConverter.ToUInt32(reader.Buffer.Span, offset, endian);
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ public static class ReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ushort ReadUInt16At(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
     {
-        return BinaryEndianConverter.ToUInt16(reader.Buffer, offset, endian);
+        return BinaryEndianConverter.ToUInt16(reader.Buffer.Span, offset, endian);
     }
 
     /// <summary>
@@ -70,7 +70,7 @@ public static class ReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ReadInt32At(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
     {
-        return BinaryEndianConverter.ToInt32(reader.Buffer, offset, endian);
+        return BinaryEndianConverter.ToInt32(reader.Buffer.Span, offset, endian);
     }
 
     /// <summary>
@@ -83,7 +83,7 @@ public static class ReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static short ReadInt16At(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
     {
-        return BinaryEndianConverter.ToInt16(reader.Buffer, offset, endian);
+        return BinaryEndianConverter.ToInt16(reader.Buffer.Span, offset, endian);
     }
 
     /// <summary>
@@ -96,7 +96,7 @@ public static class ReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Guid ReadGuidAt(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
     {
-        return BinaryEndianConverter.ToGuid(reader.Buffer, offset, endian);
+        return BinaryEndianConverter.ToGuid(reader.Buffer.Span, offset, endian);
     }
 
     /// <summary>
@@ -109,7 +109,7 @@ public static class ReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float ReadFloatAt(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
     {
-        return BinaryEndianConverter.ToFloat(reader.Buffer, offset, endian);
+        return BinaryEndianConverter.ToFloat(reader.Buffer.Span, offset, endian);
     }
 
     /// <summary>
@@ -122,7 +122,7 @@ public static class ReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double ReadDoubleAt(this IEndianReader reader, EndianType endian = EndianType.LITTLE, int offset = 0)
     {
-        return BinaryEndianConverter.ToDouble(reader.Buffer, offset, endian);
+        return BinaryEndianConverter.ToDouble(reader.Buffer.Span, offset, endian);
     }
 
     /// <summary>
@@ -133,7 +133,7 @@ public static class ReaderExtensions
     /// <returns>The <see cref="Sha1"/>.</returns>
     public static Sha1 ReadSha1At(this IEndianReader reader, int offset = 0)
     {
-        return new(reader.Buffer.AsSpan().Slice(offset, Sha1.StructSize));
+        return new(reader.Buffer.Span.Slice(offset, Sha1.c_StructSize));
     }
 
     /// <summary>

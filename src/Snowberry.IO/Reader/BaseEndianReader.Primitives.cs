@@ -7,7 +7,7 @@ public partial class BaseEndianReader
     /// <inheritdoc/>
     public Sha1 ReadSha1()
     {
-        Span<byte> bytes = stackalloc byte[Sha1.StructSize];
+        Span<byte> bytes = stackalloc byte[Sha1.c_StructSize];
         ReadExactly(bytes);
         return new(bytes);
     }

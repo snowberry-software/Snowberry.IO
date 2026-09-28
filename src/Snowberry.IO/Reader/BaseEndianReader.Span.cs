@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿#if NETCOREAPP3_0_OR_GREATER
+using System.Runtime.CompilerServices;
+#endif
 
 namespace Snowberry.IO.Reader;
 

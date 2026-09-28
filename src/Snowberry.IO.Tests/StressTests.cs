@@ -257,7 +257,7 @@ public class StressTests
         var stream = new MemoryStream();
         using var reader = new EndianStreamReader(stream, null, 16);
 
-        Assert.Equal(BaseEndianReader.MinBufferSize, reader.Buffer.Length);
+        Assert.Equal(BaseEndianReader.c_MinBufferSize, reader.Buffer.Length);
 
         reader.EnsureBufferSize(32);
         Assert.Equal(32, reader.Buffer.Length);

@@ -10,7 +10,7 @@ namespace Snowberry.IO.SingleFile.Meta;
 /// </summary>
 public class FileEntry(BundleManifest bundleManifest) : IDisposable
 {
-    public const char DirectorySeparatorChar = '/';
+    public const char c_DirectorySeparatorChar = '/';
 
     /// <inheritdoc/>
     public override string ToString()

@@ -385,7 +385,7 @@ public class TryReadTests
         var stream = new MemoryStream();
         using (var writer = new EndianStreamWriter(stream, true))
         {
-            byte[] hashBytes = new byte[Sha1.StructSize];
+            byte[] hashBytes = new byte[Sha1.c_StructSize];
             new Random(42).NextBytes(hashBytes);
             var sha1 = new Sha1(hashBytes);
             writer.Write(sha1);
@@ -397,7 +397,7 @@ public class TryReadTests
         bool success = reader.TryReadSha1(out var value);
 
         Assert.True(success);
-        Assert.NotEqual(Sha1.Zero, value);
+        Assert.NotEqual(Sha1.s_Zero, value);
     }
 
     [Fact]
@@ -409,7 +409,7 @@ public class TryReadTests
         bool success = reader.TryReadSha1(out var value);
 
         Assert.False(success);
-        Assert.Equal(Sha1.Zero, value);
+        Assert.Equal(Sha1.s_Zero, value);
     }
 
     [Fact]

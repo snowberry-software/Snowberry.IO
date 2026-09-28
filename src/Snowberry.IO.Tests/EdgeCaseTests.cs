@@ -582,7 +582,6 @@ public class EdgeCaseTests
 
     [Theory]
     [InlineData(0.0f, 0.0f)]
-    [InlineData(-0.0f, -0.0f)]
     [InlineData(1.0f, 1.0f)]
     [InlineData(-1.0f, -1.0f)]
     public void Float_PositiveAndNegativeZero(float writeValue, float expectedValue)
@@ -597,7 +596,6 @@ public class EdgeCaseTests
 
     [Theory]
     [InlineData(0.0, 0.0)]
-    [InlineData(-0.0, -0.0)]
     [InlineData(1.0, 1.0)]
     [InlineData(-1.0, -1.0)]
     public void Double_PositiveAndNegativeZero(double writeValue, double expectedValue)
@@ -607,6 +605,30 @@ public class EdgeCaseTests
         {
             double result = r.ReadDouble();
             Assert.Equal(expectedValue, result);
+        });
+    }
+
+    [Fact]
+    public void Float_NegativeZero_PreservesSign()
+    {
+        // -0.0f == 0.0f, so compare the raw bits to verify the sign bit survives the round-trip.
+        CreateShared((w, _) => w.Write(-0.0f),
+        (r, _) =>
+        {
+            float result = r.ReadFloat();
+            Assert.Equal(BitConverter.GetBytes(-0.0f), BitConverter.GetBytes(result));
+        });
+    }
+
+    [Fact]
+    public void Double_NegativeZero_PreservesSign()
+    {
+        // -0.0 == 0.0, so compare the raw bits to verify the sign bit survives the round-trip.
+        CreateShared((w, _) => w.Write(-0.0),
+        (r, _) =>
+        {
+            double result = r.ReadDouble();
+            Assert.Equal(BitConverter.GetBytes(-0.0), BitConverter.GetBytes(result));
         });
     }
 }

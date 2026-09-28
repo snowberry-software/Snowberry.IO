@@ -14,7 +14,7 @@ public class OptimizationTests
     [InlineData(10)]
     [InlineData(50)]
     [InlineData(100)]
-    [InlineData(128)] // MaxCharBytesSize boundary
+    [InlineData(128)] // c_MaxCharBytesSize boundary
     [InlineData(200)]
     [InlineData(1000)]
     public void ReadString_OptimizedPath_SmallStrings(int length)

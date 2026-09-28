@@ -14,12 +14,12 @@ public struct Sha1 : IEquatable<Sha1>
     /// <summary>
     /// The size of the SHA-1 hash in bytes.
     /// </summary>
-    public const int StructSize = 20;
+    public const int c_StructSize = 20;
 
     /// <summary>
     /// A <see cref="Sha1"/> instance with all components set to zero.
     /// </summary>
-    public static readonly Sha1 Zero = new(null as byte[]);
+    public static readonly Sha1 s_Zero = new(null as byte[]);
 
     private uint _a, _b, _c, _d, _e;
 
@@ -74,10 +74,10 @@ public struct Sha1 : IEquatable<Sha1>
     public void From(ReadOnlySpan<byte> data)
     {
         if (data.Length < 20)
-            throw new ArgumentException($"{nameof(Sha1)} must be a minimum of {StructSize} bytes in length", nameof(data));
+            throw new ArgumentException($"{nameof(Sha1)} must be a minimum of {c_StructSize} bytes in length", nameof(data));
 
         if (data.Length > 20)
-            throw new ArgumentException($"{nameof(Sha1)} cannot be more than {StructSize} bytes in length", nameof(data));
+            throw new ArgumentException($"{nameof(Sha1)} cannot be more than {c_StructSize} bytes in length", nameof(data));
 
         _a = (uint)(data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24));
         _b = (uint)(data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));

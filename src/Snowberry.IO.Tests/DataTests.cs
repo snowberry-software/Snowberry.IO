@@ -5,7 +5,7 @@ namespace Snowberry.IO.Tests;
 
 public class DataTests
 {
-    private static readonly Random Random = new(42);
+    private static readonly Random s_Random = new(42);
 
     [Fact]
     private void Sha1ToString()
@@ -49,8 +49,8 @@ public class DataTests
     [Fact]
     private void Sha1Equality()
     {
-        byte[] hashBuffer = new byte[Sha1.StructSize];
-        Random.NextBytes(hashBuffer);
+        byte[] hashBuffer = new byte[Sha1.c_StructSize];
+        s_Random.NextBytes(hashBuffer);
 
         var a = new Sha1(hashBuffer);
         hashBuffer[10] += 1;
@@ -102,7 +102,7 @@ public class DataTests
     [Fact]
     private void Sha1_FromBytes_CorrectSize()
     {
-        byte[] buffer = new byte[Sha1.StructSize];
+        byte[] buffer = new byte[Sha1.c_StructSize];
         for (int i = 0; i < buffer.Length; i++)
         {
             buffer[i] = (byte)i;
@@ -117,8 +117,8 @@ public class DataTests
     [Fact]
     private void Sha1_FromBytes_InvalidSize_ThrowsException()
     {
-        byte[] tooSmall = new byte[Sha1.StructSize - 1];
-        byte[] tooLarge = new byte[Sha1.StructSize + 1];
+        byte[] tooSmall = new byte[Sha1.c_StructSize - 1];
+        byte[] tooLarge = new byte[Sha1.c_StructSize + 1];
 
         Assert.Throws<ArgumentException>(() => new Sha1(tooSmall));
         Assert.Throws<ArgumentException>(() => new Sha1(tooLarge));
@@ -138,7 +138,7 @@ public class DataTests
     [Fact]
     private void Sha1_StructSize_IsCorrect()
     {
-        Assert.Equal(20, Sha1.StructSize);
+        Assert.Equal(20, Sha1.c_StructSize);
     }
 
     [Theory]
@@ -157,8 +157,8 @@ public class DataTests
     [Fact]
     private void Sha1_RoundTrip_Bytes()
     {
-        byte[] original = new byte[Sha1.StructSize];
-        Random.NextBytes(original);
+        byte[] original = new byte[Sha1.c_StructSize];
+        s_Random.NextBytes(original);
 
         var sha1 = new Sha1(original);
         byte[] result = sha1.GetHashBuffer();
@@ -236,7 +236,7 @@ public class DataTests
     [Fact]
     private void Sha1_BufferNotModifiedAfterConstruction()
     {
-        byte[] buffer = new byte[Sha1.StructSize];
+        byte[] buffer = new byte[Sha1.c_StructSize];
         for (int i = 0; i < buffer.Length; i++)
         {
             buffer[i] = (byte)i;

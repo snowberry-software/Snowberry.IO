@@ -14,9 +14,9 @@ public abstract partial class BaseEndianReader : IEndianReader
     /// <summary>
     /// The largest data type is the <see cref="Sha1"/> type.
     /// </summary>
-    public const int MinBufferSize = 20;
+    public const int c_MinBufferSize = 20;
 
-    protected const int MaxCharBytesSize = 128;
+    protected const int c_MaxCharBytesSize = 128;
 
     protected byte[] _buffer;
 
@@ -37,7 +37,7 @@ public abstract partial class BaseEndianReader : IEndianReader
     /// Creates a new reader instance.
     /// </summary>
     /// <remarks>
-    /// The <paramref name="bufferSize"/> must be at least <see cref="IEndianReader.MinBufferSize"/>, the size will automatically be adjusted if that's not the case.<para/>
+    /// The <paramref name="bufferSize"/> must be at least <see cref="c_MinBufferSize"/>, the size will automatically be adjusted if that's not the case.<para/>
     /// The <see cref="Encoding.Default"/> will be used for the <see cref="Encoding"/>.
     /// </remarks>
     /// <param name="analyzer">The optional analyzer instance.</param>
@@ -59,15 +59,15 @@ public abstract partial class BaseEndianReader : IEndianReader
     {
         _ = encoding ?? throw new ArgumentNullException(nameof(encoding));
 
-        if (bufferSize < MinBufferSize)
-            bufferSize = MinBufferSize;
+        if (bufferSize < c_MinBufferSize)
+            bufferSize = c_MinBufferSize;
 
         _buffer = new byte[bufferSize];
         Analyzer = analyzer;
 
         _encoding = encoding;
         _decoder = encoding.GetDecoder();
-        _maxCharsSize = encoding.GetMaxCharCount(MaxCharBytesSize);
+        _maxCharsSize = encoding.GetMaxCharCount(c_MaxCharBytesSize);
 
         // For Encodings that always use 2 bytes per char (or more),
         // special case them here to make Read() & Peek() faster.
@@ -117,10 +117,10 @@ public abstract partial class BaseEndianReader : IEndianReader
         if (bufferSize < 0)
             throw new ArgumentOutOfRangeException(nameof(bufferSize), "Buffer size cannot be negative.");
 
-        bufferSize = Math.Max(MinBufferSize, bufferSize);
+        bufferSize = Math.Max(c_MinBufferSize, bufferSize);
 
-        if (Buffer == null || Buffer.Length < bufferSize)
-            Buffer = new byte[bufferSize];
+        if (_buffer == null || _buffer.Length < bufferSize)
+            _buffer = new byte[bufferSize];
     }
 
     /// <inheritdoc/>
@@ -192,11 +192,7 @@ public abstract partial class BaseEndianReader : IEndianReader
     public abstract long Position { get; set; }
 
     /// <inheritdoc/>
-    public virtual byte[] Buffer
-    {
-        get => _buffer;
-        set => _buffer = value;
-    }
+    public virtual Memory<byte> Buffer => _buffer;
 
     /// <inheritdoc/>
     public virtual bool IsRegionViewEnabled => _isRegionViewEnabled;

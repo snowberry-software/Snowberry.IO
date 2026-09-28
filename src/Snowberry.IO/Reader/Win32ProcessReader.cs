@@ -1,8 +1,10 @@
-﻿using System.Runtime.Versioning;
-using System.Text;
+﻿using System.Text;
 using Snowberry.IO.Common.Reader;
 using Snowberry.IO.Common.Reader.Interfaces;
 using static Snowberry.IO.Utils.Win32Helper;
+#if NET5_0_OR_GREATER
+using System.Runtime.Versioning;
+#endif
 
 namespace Snowberry.IO.Reader;
 

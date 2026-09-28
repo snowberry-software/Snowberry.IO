@@ -10,36 +10,36 @@ namespace Snowberry.IO.Benchmarks.Conversions;
 [MediumRunJob]
 public class UInt32ConversionBenchmark
 {
-    private static byte[] _data = [0xD6, 0x87, 0x00, 0x00, 0xD6, 0x87, 0x00, 0x00];
+    private static byte[] s_Data = [0xD6, 0x87, 0x00, 0x00, 0xD6, 0x87, 0x00, 0x00];
 
     [Benchmark]
     public uint BitConverter_UInt32()
     {
-        return BitConverter.ToUInt32(_data);
+        return BitConverter.ToUInt32(s_Data);
     }
 
     [Benchmark]
     public uint BinaryEndianConverter_UInt32()
     {
-        return BinaryEndianConverter.ToUInt32(_data.AsSpan(), EndianType.LITTLE);
+        return BinaryEndianConverter.ToUInt32(s_Data.AsSpan(), EndianType.LITTLE);
     }
 
     [Benchmark]
     public uint BitConverter_Offset_UInt32()
     {
-        return BitConverter.ToUInt32(_data, 4);
+        return BitConverter.ToUInt32(s_Data, 4);
     }
 
     [Benchmark]
     public uint BinaryEndianConverter_Offset_UInt32()
     {
-        return BinaryEndianConverter.ToUInt32(_data.AsSpan(), 4, EndianType.LITTLE);
+        return BinaryEndianConverter.ToUInt32(s_Data.AsSpan(), 4, EndianType.LITTLE);
     }
 
     [Benchmark]
     public uint BitConverter_BigE_UInt32()
     {
-        var s = _data.AsSpan();
+        var s = s_Data.AsSpan();
         s.Reverse();
         return BitConverter.ToUInt32(s.ToArray(), 0);
     }
@@ -47,13 +47,13 @@ public class UInt32ConversionBenchmark
     [Benchmark]
     public uint BinaryEndianConverter_BigE_UInt32()
     {
-        return BinaryEndianConverter.ToUInt32(_data.AsSpan(), EndianType.BIG);
+        return BinaryEndianConverter.ToUInt32(s_Data.AsSpan(), EndianType.BIG);
     }
 
     [Benchmark]
     public uint BitConverter_Offset_BigE_UInt32()
     {
-        var s = _data.AsSpan();
+        var s = s_Data.AsSpan();
         s.Reverse();
         return BitConverter.ToUInt32(s.ToArray(), 4);
     }
@@ -61,6 +61,6 @@ public class UInt32ConversionBenchmark
     [Benchmark]
     public uint BinaryEndianConverter_Offset_BigE_UInt32()
     {
-        return BinaryEndianConverter.ToUInt32(_data.AsSpan(), 4, EndianType.BIG);
+        return BinaryEndianConverter.ToUInt32(s_Data.AsSpan(), 4, EndianType.BIG);
     }
 }

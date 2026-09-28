@@ -278,7 +278,7 @@ public partial interface IEndianReader : IDisposable
     /// <summary>
     /// Gets the internal buffer of the reader.
     /// </summary>
-    byte[] Buffer { get; }
+    Memory<byte> Buffer { get; }
 
     /// <summary>
     /// Gets a value indicating whether the reader is disposed.

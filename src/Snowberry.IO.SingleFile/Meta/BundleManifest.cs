@@ -8,7 +8,7 @@ namespace Snowberry.IO.SingleFile.Meta;
 /// </summary>
 public class BundleManifest : IDisposable
 {
-    public const int BundleIdLength = 12;
+    public const int c_BundleIdLength = 12;
 
     /// <summary>
     /// Reads the data of the bundle manifest.

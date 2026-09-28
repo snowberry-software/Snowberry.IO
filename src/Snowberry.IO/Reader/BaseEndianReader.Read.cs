@@ -79,7 +79,7 @@ public partial class BaseEndianReader
 #endif
     public int ReadInInternalBuffer(int byteCount, int offset)
     {
-        return Read(Buffer, offset, byteCount);
+        return Read(_buffer, offset, byteCount);
     }
 
     /// <inheritdoc/>
@@ -139,7 +139,7 @@ public partial class BaseEndianReader
         if (stringLength == 0)
             return string.Empty;
 
-        if (stringLength <= MaxCharBytesSize)
+        if (stringLength <= c_MaxCharBytesSize)
         {
 #if !NETSTANDARD2_0
             Span<byte> smallStringBytes = stackalloc byte[stringLength];
@@ -158,12 +158,12 @@ public partial class BaseEndianReader
 
         var sb = new StringBuilder();
 
-        Span<byte> charBytes = stackalloc byte[MaxCharBytesSize];
+        Span<byte> charBytes = stackalloc byte[c_MaxCharBytesSize];
         _charBuffer ??= new char[_maxCharsSize];
 
         do
         {
-            readLength = ((stringLength - position) > MaxCharBytesSize) ? MaxCharBytesSize : (stringLength - position);
+            readLength = ((stringLength - position) > c_MaxCharBytesSize) ? c_MaxCharBytesSize : (stringLength - position);
 
             n = Read(charBytes[..readLength]);
 
@@ -334,14 +334,14 @@ public partial class BaseEndianReader
         var decoder = _encoding.GetDecoder();
 
         Span<char> decodedCharSpan = stackalloc char[_maxCharsSize];
-        Span<byte> charBytes = stackalloc byte[MaxCharBytesSize];
+        Span<byte> charBytes = stackalloc byte[c_MaxCharBytesSize];
 
         int readLength;
         int n;
 
         do
         {
-            readLength = size > MaxCharBytesSize ? MaxCharBytesSize : size;
+            readLength = size > c_MaxCharBytesSize ? c_MaxCharBytesSize : size;
             n = Read(charBytes[..readLength]);
 
             if (n == 0)

@@ -1,5 +1,7 @@
 ﻿using System.Runtime.InteropServices;
+#if NET5_0_OR_GREATER
 using System.Runtime.Versioning;
+#endif
 
 namespace Snowberry.IO.Utils;
 

@@ -9,14 +9,14 @@ namespace Snowberry.IO.Tests;
 
 public class ReaderTests
 {
-    public static readonly Random Random = new();
+    public static readonly Random s_Random = new();
 
     [Theory]
-    [InlineData(0, BaseEndianReader.MinBufferSize)]
+    [InlineData(0, BaseEndianReader.c_MinBufferSize)]
     [InlineData(50, 50)]
     [InlineData(100, 100)]
     [InlineData(1000, 1000)]
-    [InlineData(BaseEndianReader.MinBufferSize - 1, BaseEndianReader.MinBufferSize)]
+    [InlineData(BaseEndianReader.c_MinBufferSize - 1, BaseEndianReader.c_MinBufferSize)]
     private void EnsureBufferSize(int setValue, int expectedValue)
     {
         using var reader = new EndianStreamReader(new MemoryStream());
@@ -197,8 +197,8 @@ public class ReaderTests
         var stream = new MemoryStream();
         using var writer = new EndianStreamWriter(stream, true);
 
-        byte[] hashBuffer = new byte[Sha1.StructSize];
-        Random.NextBytes(hashBuffer);
+        byte[] hashBuffer = new byte[Sha1.c_StructSize];
+        s_Random.NextBytes(hashBuffer);
 
         var hash = new Sha1(hashBuffer);
         writer.Write(30, EndianType.BIG)
@@ -376,7 +376,7 @@ public class ReaderTests
     {
         using var reader = new EndianStreamReader(new MemoryStream(), null, 100);
 
-        Assert.NotNull(reader.Buffer);
+        Assert.False(reader.Buffer.IsEmpty);
         Assert.True(reader.Buffer.Length >= 100);
     }
 

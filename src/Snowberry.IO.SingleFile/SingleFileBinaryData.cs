@@ -293,7 +293,7 @@ public class SingleFileBinaryData : IDisposable
         bundleHash.TransformFinalBlock([], 0, 0);
         byte[] manifestHash = bundleHash.Hash!;
 
-        return Convert.ToBase64String(manifestHash)[BundleManifest.BundleIdLength..].Replace('/', '_');
+        return Convert.ToBase64String(manifestHash)[BundleManifest.c_BundleIdLength..].Replace('/', '_');
     }
 
     private static byte[] ComputeSha256Hash(Stream stream)

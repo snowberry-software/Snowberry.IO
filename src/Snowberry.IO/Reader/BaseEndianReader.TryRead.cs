@@ -257,13 +257,13 @@ public partial class BaseEndianReader
     public bool TryReadSha1(out Sha1 value)
     {
         long startPosition = Position;
-        Span<byte> bytes = stackalloc byte[Sha1.StructSize];
+        Span<byte> bytes = stackalloc byte[Sha1.c_StructSize];
         int bytesRead = Read(bytes);
 
-        if (bytesRead != Sha1.StructSize)
+        if (bytesRead != Sha1.c_StructSize)
         {
             Position = startPosition;
-            value = Sha1.Zero;
+            value = Sha1.s_Zero;
             return false;
         }
 

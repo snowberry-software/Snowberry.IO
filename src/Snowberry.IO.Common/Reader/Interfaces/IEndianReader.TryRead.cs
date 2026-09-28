@@ -79,7 +79,7 @@ public partial interface IEndianReader
     /// <summary>
     /// Tries to read a <see cref="Sha1"/> hash from the current stream.
     /// </summary>
-    /// <param name="value">When this method returns, contains the value read from the stream, or <see cref="Sha1.Zero"/> if the read failed.</param>
+    /// <param name="value">When this method returns, contains the value read from the stream, or <see cref="Sha1.s_Zero"/> if the read failed.</param>
     /// <returns><see langword="true"/> if the value was successfully read; otherwise, <see langword="false"/>.</returns>
     bool TryReadSha1(out Sha1 value);
 

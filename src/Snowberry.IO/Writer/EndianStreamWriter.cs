@@ -193,7 +193,7 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IEndianWriter Write(Sha1 value)
     {
-        base.Write(value.GetHashBuffer(), 0, Sha1.StructSize);
+        base.Write(value.GetHashBuffer(), 0, Sha1.c_StructSize);
         return this;
     }
 

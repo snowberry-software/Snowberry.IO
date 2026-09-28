@@ -15,9 +15,9 @@ public struct RegionRange : IEquatable<RegionRange>
     /// Uses the <see cref="Range"/> to create a new <see cref="RegionRange"/>.
     /// </summary>
     /// <remarks>
-    /// The <see cref="Range.Start"/> is considered as <see cref="RegionRange.StartPosition"/>.
+    /// The <see cref="Range.Start"/> is considered as <see cref="StartPosition"/>.
     /// <para/>
-    /// The <see cref="Range.End"/> is considered as <see cref="RegionRange.Size"/>.
+    /// The <see cref="Range.End"/> is considered as <see cref="Size"/>.
     /// </remarks>
     /// <param name="range">The given range.</param>
     public static implicit operator RegionRange(Range range)
