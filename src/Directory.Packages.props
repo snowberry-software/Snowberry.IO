@@ -1,0 +1,41 @@
+<Project>
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>    </PropertyGroup>
+
+    <!-- Packaging -->
+    <ItemGroup>
+        <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.401" />
+    </ItemGroup>
+
+    <!-- Framework Compatibility -->
+    <ItemGroup>
+        <PackageVersion Include="IndexRange" Version="1.1.1" />
+        <PackageVersion Include="System.Memory" Version="4.6.3" />
+        <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
+    </ItemGroup>
+
+    <!-- Source Generator -->
+    <ItemGroup>
+        <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    </ItemGroup>
+
+    <!-- SingleFile CLI -->
+    <ItemGroup>
+        <PackageVersion Include="CommandLineParser" Version="2.9.1" />
+        <PackageVersion Include="Serilog" Version="4.4.0" />
+        <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
+        <PackageVersion Include="Serilog.Sinks.Debug" Version="3.0.0" />
+    </ItemGroup>
+
+    <!-- Tests -->
+    <ItemGroup>
+        <PackageVersion Include="coverlet.MTP" Version="10.1.0" />
+        <PackageVersion Include="xunit.v3" Version="4.0.1" />
+    </ItemGroup>
+
+    <!-- Benchmarks -->
+    <ItemGroup>
+        <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+    </ItemGroup>
+</Project>

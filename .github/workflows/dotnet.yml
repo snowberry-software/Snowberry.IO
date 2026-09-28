@@ -8,40 +8,62 @@ on:
     paths-ignore:
       - "README.md"
 
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  SOLUTION: Snowberry.IO.sln
+  TEST_PROJECT: Snowberry.IO.Tests/Snowberry.IO.Tests.csproj
+  CONFIGURATION: Release
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        # Run from src so the SDK picks up src/global.json (Microsoft.Testing.Platform runner).
+        working-directory: src
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: | 
-            7.x
-            8.x
+          dotnet-version: |
             9.x
             10.x
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION }}
       - name: Build
-        run: ./build.sh Compile
-      - name: Test
-        run: ./build.sh Test
+        run: dotnet build ${{ env.SOLUTION }} --configuration ${{ env.CONFIGURATION }} --no-restore
+      - name: Test (net10.0)
+        run: dotnet test --project ${{ env.TEST_PROJECT }} --configuration ${{ env.CONFIGURATION }} --framework net10.0 --no-build
+      - name: Test (net9.0)
+        run: dotnet test --project ${{ env.TEST_PROJECT }} --configuration ${{ env.CONFIGURATION }} --framework net9.0 --no-build
+      - name: Pack
+        run: dotnet pack ${{ env.SOLUTION }} --configuration ${{ env.CONFIGURATION }} --no-build --output ../artifacts
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/*.nupkg
+          if-no-files-found: error
 
   deploy:
     runs-on: ubuntu-latest
-    env:
-      NUGET_KEY: ${{ secrets.NUGET_KEY }}
     needs: build
     # Publish for a tag starting with v.
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v3
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            7.x
-            8.x
-            9.x
-            10.x
-      - name: Deploy
-        run: ./build.sh DeployNuGet -Configuration Release -NuGetPackageFilter Snowberry.IO.*.nupkg
+          dotnet-version: 10.x
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts
+      - name: Push to NuGet
+        env:
+          NUGET_KEY: ${{ secrets.NUGET_KEY }}
+        run: dotnet nuget push "artifacts/Snowberry.IO*.nupkg" --api-key "$NUGET_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate

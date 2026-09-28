@@ -2,5 +2,8 @@
     <PropertyGroup>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)Snowberry.IO.snk</AssemblyOriginatorKeyFile>
+
+        <!-- Projects opt into packing by importing NuGetPackage.props -->
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 </Project>
