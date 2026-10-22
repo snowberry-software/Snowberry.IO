@@ -1,0 +1,20 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/AddOns/" />
+  <Folder Name="/AddOns/SingleFile/">
+    <Project Path="Snowberry.IO.SingleFile.CLI/Snowberry.IO.SingleFile.CLI.csproj" />
+    <Project Path="Snowberry.IO.SingleFile/Snowberry.IO.SingleFile.csproj" />
+  </Folder>
+  <Folder Name="/Benchmarks/">
+    <Project Path="Snowberry.IO.Benchmarks/Snowberry.IO.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Snowberry.IO.Tests/Snowberry.IO.Tests.csproj" />
+  </Folder>
+  <Project Path="Snowberry.IO.Common/Snowberry.IO.Common.csproj" />
+  <Project Path="Snowberry.IO/Snowberry.IO.csproj" />
+</Solution>

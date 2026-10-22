@@ -1,69 +1,105 @@
 name: .NET
 
-# Trigger this workflow on a push, or pull request to the master or develop branch
+# Pushes to master and develop, version tags, and pull requests into master or develop.
 on:
   push:
+    branches: [master, develop]
+    tags: ["v*"]
+    paths-ignore:
+      - "README.md"
   pull_request:
     branches: [master, develop]
     paths-ignore:
       - "README.md"
 
+permissions:
+  contents: read
+
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-  SOLUTION: Snowberry.IO.sln
-  TEST_PROJECT: Snowberry.IO.Tests/Snowberry.IO.Tests.csproj
-  CONFIGURATION: Release
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }}, ${{ matrix.framework }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            dotnet: "10.0.x"
+            framework: "net10.0"
+          # The Win32 process reader tests only run on Windows.
+          - os: windows-latest
+            dotnet: "10.0.x"
+            framework: "net10.0"
+          # .NET Framework runs the netstandard2.0 build and only exists on Windows.
+          - os: windows-latest
+            dotnet: "10.0.x"
+            framework: "net48"
+
     defaults:
       run:
         # Run from src so the SDK picks up src/global.json (Microsoft.Testing.Platform runner).
-        working-directory: src
+        working-directory: ./src
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET ${{ matrix.dotnet }}
+        uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: |
-            9.x
-            10.x
+          dotnet-version: ${{ matrix.dotnet }}
+
       - name: Restore
-        run: dotnet restore ${{ env.SOLUTION }}
+        run: dotnet restore
+
       - name: Build
-        run: dotnet build ${{ env.SOLUTION }} --configuration ${{ env.CONFIGURATION }} --no-restore
-      - name: Test (net10.0)
-        run: dotnet test --project ${{ env.TEST_PROJECT }} --configuration ${{ env.CONFIGURATION }} --framework net10.0 --no-build
-      - name: Test (net9.0)
-        run: dotnet test --project ${{ env.TEST_PROJECT }} --configuration ${{ env.CONFIGURATION }} --framework net9.0 --no-build
-      - name: Pack
-        run: dotnet pack ${{ env.SOLUTION }} --configuration ${{ env.CONFIGURATION }} --no-build --output ../artifacts
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test (${{ matrix.framework }})
+        run: dotnet test --project Snowberry.IO.Tests --configuration Release --no-build --framework ${{ matrix.framework }}
+
+      # The deploy job publishes exactly these packages, so they are only uploaded for the tags the deploy job runs on.
       - name: Upload packages
-        uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v7
         with:
-          name: nuget-packages
-          path: artifacts/*.nupkg
+          name: packages
+          path: |
+            src/Snowberry.IO/bin/Release/*.nupkg
+            src/Snowberry.IO.Common/bin/Release/*.nupkg
+            src/Snowberry.IO.SingleFile/bin/Release/*.nupkg
           if-no-files-found: error
 
   deploy:
+    name: Publish to NuGet
     runs-on: ubuntu-latest
     needs: build
-    # Publish for a tag starting with v.
+    # Publish for a tag starting with v, after every test passed.
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.x
       - name: Download packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
-          name: nuget-packages
-          path: artifacts
-      - name: Push to NuGet
-        env:
-          NUGET_KEY: ${{ secrets.NUGET_KEY }}
-        run: dotnet nuget push "artifacts/Snowberry.IO*.nupkg" --api-key "$NUGET_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          name: packages
+          path: packages
+
+      # Refuse to publish when the tag and the package versions disagree. The version is read from the package file names,
+      # which NuGet normalizes: AssemblyVersion 4.1.0.0 needs tag v4.1.0, and 4.1.0.1 needs v4.1.0.1.
+      - name: Check version
+        shell: bash
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          names=$(cd packages && ls *.nupkg)
+          echo "Tag: ${GITHUB_REF_NAME}, packages: ${names}"
+          for package in Snowberry.IO Snowberry.IO.Common Snowberry.IO.SingleFile; do
+            if [ ! -f "packages/${package}.${expected}.nupkg" ]; then
+              echo "::error::Tag ${GITHUB_REF_NAME} does not match the built ${package} package (${names})."
+              exit 1
+            fi
+          done
+
+      - name: Publish
+        run: dotnet nuget push "packages/*.nupkg" --api-key "${{ secrets.NUGET_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate

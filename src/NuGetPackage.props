@@ -4,7 +4,7 @@
         <Platforms>AnyCPU;x64;x86</Platforms>
 
         <Authors>Snowberry Software</Authors>
-        <AssemblyVersion>4.0.0.0</AssemblyVersion>
+        <AssemblyVersion>5.0.0.0</AssemblyVersion>
         <VersionPrefix>$(AssemblyVersion)</VersionPrefix>
 
         <IsPackable>true</IsPackable>
@@ -14,8 +14,7 @@
 
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <IncludeBuildOutput>true</IncludeBuildOutput>
-        <Copyright>Copyright © $([System.DateTime]::Now.Year) Snowberry Software</Copyright>
-        <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+        <Copyright>Copyright © 2026 Snowberry Software</Copyright>
         <PackageProjectUrl>https://github.com/snowberry-software/Snowberry.IO</PackageProjectUrl>
 
         <RepositoryType>git</RepositoryType>
@@ -31,7 +30,19 @@
 
         <!-- Recommended: Embed symbols containing Source Link in the main file (exe/dll) -->
         <DebugType>embedded</DebugType>
+
+        <!-- Ship IntelliSense XML and enforce the documentation diagnostics configured in .editorconfig -->
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        
+         <!-- Report the .editorconfig code-style rules on every build, so CI fails on style errors -->
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     </PropertyGroup>
+
+    <!-- StyleCop checks the documentation; only the rules enabled in .editorconfig run -->
+    <ItemGroup>
+        <PackageReference Include="StyleCop.Analyzers" PrivateAssets="all" />
+        <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)StyleCop.globalconfig" />
+    </ItemGroup>
 
     <!-- Deterministic Builds -->
     <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
@@ -41,10 +52,4 @@
     <PropertyGroup Condition="'$(TF_BUILD)' == 'true'">
         <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     </PropertyGroup>
-
-    <!-- SourceLink -->
-    <ItemGroup>
-        <!-- For GitHub -->
-        <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-    </ItemGroup>
 </Project>

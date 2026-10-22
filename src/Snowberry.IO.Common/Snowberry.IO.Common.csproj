@@ -3,11 +3,13 @@
     <Import Project="../NuGetPackage.props" />
 
     <PropertyGroup>
-        <TargetFrameworks>net10.0;net9.0;net8.0;net7.0;net6.0;netstandard2.0;netstandard2.1</TargetFrameworks>
+        <TargetFrameworks>net10.0;netstandard2.1;netstandard2.0</TargetFrameworks>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <AnalysisLevel>7.0-all</AnalysisLevel>
+        <AnalysisLevel>latest-all</AnalysisLevel>
+        <!-- CA1707 forbids underscores in public names, but the naming rules require the c_ and s_ prefixes. -->
+        <NoWarn>$(NoWarn);CA1707</NoWarn>
         <LangVersion>latest</LangVersion>
 
         <!-- Package -->
