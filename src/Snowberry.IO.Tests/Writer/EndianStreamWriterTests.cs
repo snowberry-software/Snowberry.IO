@@ -110,7 +110,7 @@ public class EndianStreamWriterTests
     {
         using var writer = new EndianStreamWriter(new MemoryStream(), true);
 
-        FluentActions.Invoking(() => writer.Write(null!)).Should().ThrowExactly<ArgumentNullException>();
+        FluentActions.Invoking(() => writer.Write((byte[])null!)).Should().ThrowExactly<ArgumentNullException>();
     }
 
     [Theory]

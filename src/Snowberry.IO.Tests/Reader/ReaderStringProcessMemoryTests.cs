@@ -110,15 +110,15 @@ public class ReaderStringProcessMemoryTests
         }
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern IntPtr VirtualAlloc(IntPtr address, UIntPtr size, uint allocationType, uint protect);
+        private static extern IntPtr VirtualAlloc(IntPtr address, nuint size, uint allocationType, uint protect);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool VirtualFree(IntPtr address, UIntPtr size, uint freeType);
+        private static extern bool VirtualFree(IntPtr address, nuint size, uint freeType);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool VirtualProtect(IntPtr address, UIntPtr size, uint newProtect, out uint oldProtect);
+        private static extern bool VirtualProtect(IntPtr address, nuint size, uint newProtect, out uint oldProtect);
 
         public void Dispose()
         {
