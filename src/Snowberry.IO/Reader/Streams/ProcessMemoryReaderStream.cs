@@ -1,3 +1,5 @@
+using Windows.Win32;
+using Windows.Win32.System.Memory;
 using static Snowberry.IO.Utils.Win32Helper;
 #if NET5_0_OR_GREATER
 using System.Runtime.Versioning;
@@ -12,7 +14,7 @@ namespace Snowberry.IO.Reader.Streams;
 /// Without a region view, <see cref="Stream.Position"/> is a virtual address in the target process and <see cref="Stream.Length"/> is <c>0</c>.
 /// </remarks>
 #if NET5_0_OR_GREATER
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows5.1.2600")]
 #endif
 internal sealed class ProcessMemoryReaderStream : ReaderStream
 {
@@ -188,7 +190,7 @@ internal sealed class ProcessMemoryReaderStream : ReaderStream
     private unsafe int ReadOnce(long address, byte* destination, int length)
     {
         // On ERROR_PARTIAL_COPY the call fails but still reports the bytes that were copied.
-        _ = ReadProcessMemory(_handle, (nint)address, destination, (nuint)length, out nuint read);
+        _ = PInvoke.ReadProcessMemory(_handle, (void*)(nint)address, new Span<byte>(destination, length), out nuint read);
         return (int)read;
     }
 
@@ -261,8 +263,8 @@ internal sealed class ProcessMemoryReaderStream : ReaderStream
         }
 
         regionEnd = (long)info.BaseAddress + (long)info.RegionSize;
-        isAllocated = info.State != c_MemFree;
-        isReadable = info.State == c_MemCommit && (info.Protect & (c_PageNoAccess | c_PageGuard)) == 0;
+        isAllocated = info.State != VIRTUAL_ALLOCATION_TYPE.MEM_FREE;
+        isReadable = info.State == VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT && (info.Protect & (PAGE_PROTECTION_FLAGS.PAGE_NOACCESS | PAGE_PROTECTION_FLAGS.PAGE_GUARD)) == 0;
         return true;
     }
 

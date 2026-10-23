@@ -12,6 +12,7 @@
 
     <ItemGroup>
         <PackageReference Include="BenchmarkDotNet" />
+        <PackageReference Include="Microsoft.Windows.CsWin32" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup>

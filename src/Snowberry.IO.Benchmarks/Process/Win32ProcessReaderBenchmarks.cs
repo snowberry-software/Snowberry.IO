@@ -6,12 +6,17 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 #endif
 using System.Text;
+using Microsoft.Win32.SafeHandles;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using Snowberry.IO.Benchmarks.Infrastructure;
 using Snowberry.IO.Common;
 using Snowberry.IO.Extensions;
 using Snowberry.IO.Reader;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.System.Memory;
+using Windows.Win32.System.Threading;
 
 namespace Snowberry.IO.Benchmarks.Process;
 
@@ -29,7 +34,7 @@ namespace Snowberry.IO.Benchmarks.Process;
 /// </remarks>
 [OperatingSystemsFilter(allowed: true, OS.Windows)]
 #if NET5_0_OR_GREATER
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows6.0.6000")]
 #endif
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
@@ -52,14 +57,14 @@ public unsafe class Win32ProcessReaderBenchmarks
     private readonly byte[] _scanBuffer = new byte[c_ScanSize];
     private long _baseAddress;
     private System.Diagnostics.Process? _child;
-    private NativeMethods.ProcessHandle _handle = null!;
+    private SafeFileHandle _handle = null!;
 
     private byte[] _image = [];
     private GCHandle _imageHandle;
     private string _longString = string.Empty;
     private int _longStringByteLength;
     private int _prefixedOffset;
-    private nint _rawHandle;
+    private HANDLE _rawHandle;
     private Win32ProcessReader _reader = null!;
     private string _shortString = string.Empty;
     private int _shortStringByteLength;
@@ -248,7 +253,7 @@ public unsafe class Win32ProcessReaderBenchmarks
         nuint read;
 
         fixed (byte* destination = _destination)
-            _ = NativeMethods.ReadProcessMemoryBlittable(_rawHandle, (nint)_baseAddress, destination, c_BlockSize, &read);
+            _ = PInvoke.ReadProcessMemory(_rawHandle, (void*)_baseAddress, destination, c_BlockSize, &read);
 
         return _destination[0];
     }
@@ -267,7 +272,7 @@ public unsafe class Win32ProcessReaderBenchmarks
 
         for (int i = 0; i < c_ValueCount; i++)
         {
-            _ = NativeMethods.ReadProcessMemoryBlittable(_rawHandle, (nint)(_baseAddress + (i * sizeof(int))), (byte*)&value, sizeof(int), &read);
+            _ = PInvoke.ReadProcessMemory(_rawHandle, (void*)(_baseAddress + (i * sizeof(int))), (byte*)&value, sizeof(int), &read);
             sum += value;
         }
 
@@ -283,7 +288,7 @@ public unsafe class Win32ProcessReaderBenchmarks
     public byte RpmBlock()
     {
         fixed (byte* destination = _destination)
-            _ = NativeMethods.ReadProcessMemory(_handle, (nint)_baseAddress, destination, c_BlockSize, out _);
+            _ = PInvoke.ReadProcessMemory(_handle, (void*)_baseAddress, new Span<byte>(destination, c_BlockSize), out _);
 
         return _destination[0];
     }
@@ -298,7 +303,7 @@ public unsafe class Win32ProcessReaderBenchmarks
     public long RpmBufferInt32()
     {
         fixed (byte* destination = _destination)
-            _ = NativeMethods.ReadProcessMemory(_handle, (nint)_baseAddress, destination, c_BufferSize, out _);
+            _ = PInvoke.ReadProcessMemory(_handle, (void*)_baseAddress, new Span<byte>(destination, c_BufferSize), out _);
 
         ReadOnlySpan<byte> buffer = _destination;
         long sum = 0;
@@ -324,10 +329,10 @@ public unsafe class Win32ProcessReaderBenchmarks
         int byteLength = length == c_ShortStringLength ? _shortStringByteLength : _longStringByteLength;
         long pointer = 0;
 
-        _ = NativeMethods.ReadProcessMemory(_handle, (nint)GetPointerAddress(length), (byte*)&pointer, (nuint)IntPtr.Size, out _);
+        _ = PInvoke.ReadProcessMemory(_handle, (void*)GetPointerAddress(length), new Span<byte>(&pointer, IntPtr.Size), out _);
 
         fixed (byte* buffer = _stringBuffer)
-            _ = NativeMethods.ReadProcessMemory(_handle, (nint)pointer, buffer, (nuint)(byteLength + 1), out _);
+            _ = PInvoke.ReadProcessMemory(_handle, (void*)pointer, new Span<byte>(buffer, byteLength + 1), out _);
 
         return Encoding.UTF8.GetString(_stringBuffer, 0, byteLength);
     }
@@ -345,7 +350,7 @@ public unsafe class Win32ProcessReaderBenchmarks
 
         for (int i = 0; i < c_ValueCount; i++)
         {
-            _ = NativeMethods.ReadProcessMemory(_handle, (nint)(_baseAddress + (i * sizeof(int))), (byte*)&value, sizeof(int), out _);
+            _ = PInvoke.ReadProcessMemory(_handle, (void*)(_baseAddress + (i * sizeof(int))), new Span<byte>((byte*)&value, sizeof(int)), out _);
             sum += value;
         }
 
@@ -362,7 +367,7 @@ public unsafe class Win32ProcessReaderBenchmarks
     public int RpmScan()
     {
         fixed (byte* buffer = _scanBuffer)
-            _ = NativeMethods.ReadProcessMemory(_handle, (nint)(_baseAddress + c_ScanOffset), buffer, c_ScanSize, out _);
+            _ = PInvoke.ReadProcessMemory(_handle, (void*)(_baseAddress + c_ScanOffset), new Span<byte>(buffer, c_ScanSize), out _);
 
         return s_Pattern.Count(_scanBuffer);
     }
@@ -380,7 +385,7 @@ public unsafe class Win32ProcessReaderBenchmarks
 
         fixed (byte* buffer = _stringBuffer)
         {
-            _ = NativeMethods.ReadProcessMemory(_handle, (nint)address, buffer, 5, out _);
+            _ = PInvoke.ReadProcessMemory(_handle, (void*)address, new Span<byte>(buffer, 5), out _);
 
             int byteLength = 0;
             int prefixLength = 0;
@@ -394,7 +399,7 @@ public unsafe class Win32ProcessReaderBenchmarks
             }
             while (value >= 0x80);
 
-            _ = NativeMethods.ReadProcessMemory(_handle, (nint)(address + prefixLength), buffer, (nuint)byteLength, out _);
+            _ = PInvoke.ReadProcessMemory(_handle, (void*)(address + prefixLength), new Span<byte>(buffer, byteLength), out _);
             return Encoding.UTF8.GetString(_stringBuffer, 0, byteLength);
         }
     }
@@ -443,7 +448,7 @@ public unsafe class Win32ProcessReaderBenchmarks
             processId = _child.Id;
 
             nint childHandle = _child.Handle;
-            _baseAddress = NativeMethods.VirtualAllocEx(childHandle, 0, (nuint)_image.Length, NativeMethods.c_MemCommit | NativeMethods.c_MemReserve, NativeMethods.c_PageReadWrite);
+            _baseAddress = (nint)PInvoke.VirtualAllocEx((HANDLE)childHandle, null, (nuint)_image.Length, VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT | VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE, PAGE_PROTECTION_FLAGS.PAGE_READWRITE);
 
             if (_baseAddress == 0)
                 throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -452,19 +457,21 @@ public unsafe class Win32ProcessReaderBenchmarks
 
             fixed (byte* image = _image)
             {
-                if (!NativeMethods.WriteProcessMemory(childHandle, (nint)_baseAddress, image, (nuint)_image.Length, out nuint written) || written != (nuint)_image.Length)
+                nuint written;
+
+                if (!PInvoke.WriteProcessMemory((HANDLE)childHandle, (void*)_baseAddress, image, (nuint)_image.Length, &written) || written != (nuint)_image.Length)
                     throw new Win32Exception(Marshal.GetLastWin32Error());
             }
         }
 
         _reader = new Win32ProcessReader(processId, _baseAddress);
         _reader.EnsureBufferSize(c_BufferSize);
-        _handle = NativeMethods.OpenProcess(NativeMethods.c_ProcessVmRead | NativeMethods.c_ProcessQueryLimitedInformation, false, processId);
+        _handle = PInvoke.OpenProcess_SafeHandle(PROCESS_ACCESS_RIGHTS.PROCESS_VM_READ | PROCESS_ACCESS_RIGHTS.PROCESS_QUERY_LIMITED_INFORMATION, false, (uint)processId);
 
         if (_handle.IsInvalid)
             throw new Win32Exception(Marshal.GetLastWin32Error());
 
-        _rawHandle = _handle.DangerousGetHandle();
+        _rawHandle = (HANDLE)_handle.DangerousGetHandle();
         Verify();
     }
 

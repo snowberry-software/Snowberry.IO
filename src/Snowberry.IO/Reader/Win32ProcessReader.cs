@@ -5,6 +5,10 @@ using System.Text;
 using Snowberry.IO.Common.Reader;
 using Snowberry.IO.Reader.Streams;
 using Snowberry.IO.Utils;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.System.Memory;
+using Windows.Win32.System.Threading;
 using static Snowberry.IO.Utils.Win32Helper;
 #if NET5_0_OR_GREATER
 using System.Runtime.Versioning;
@@ -22,7 +26,7 @@ namespace Snowberry.IO.Reader;
 /// <para>This type is not thread-safe.</para>
 /// </remarks>
 #if NET5_0_OR_GREATER
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows6.0.6000")]
 #endif
 public class Win32ProcessReader : BaseEndianReader
 {
@@ -30,7 +34,7 @@ public class Win32ProcessReader : BaseEndianReader
     /// The default access rights requested by <see cref="Win32ProcessReader(int, long, Analyzer?, uint)"/>:
     /// <c>PROCESS_VM_READ</c> and <c>PROCESS_QUERY_LIMITED_INFORMATION</c>.
     /// </summary>
-    public const uint c_DefaultAccessFlags = (uint)(ProcessAccess.PROCESS_VM_READ | ProcessAccess.PROCESS_QUERY_LIMITED_INFORMATION);
+    public const uint c_DefaultAccessFlags = (uint)(PROCESS_ACCESS_RIGHTS.PROCESS_VM_READ | PROCESS_ACCESS_RIGHTS.PROCESS_QUERY_LIMITED_INFORMATION);
 
     /// <summary>
     /// The maximum number of bytes <see cref="ReadCString"/> reads before it gives up looking for the terminator.
@@ -113,16 +117,12 @@ public class Win32ProcessReader : BaseEndianReader
     /// <exception cref="Win32Exception">The process could not be opened.</exception>
     private static ProcessSafeHandle OpenProcessHandle(int pid, uint accessFlags)
     {
-        var handle = OpenProcess(accessFlags, false, pid);
+        var handle = PInvoke.OpenProcess((PROCESS_ACCESS_RIGHTS)accessFlags, false, unchecked((uint)pid));
 
-        if (handle.IsInvalid)
-        {
-            int error = Marshal.GetLastWin32Error();
-            handle.Dispose();
-            throw new Win32Exception(error);
-        }
+        if (handle.IsNull)
+            throw new Win32Exception(Marshal.GetLastWin32Error());
 
-        return handle;
+        return new ProcessSafeHandle(handle);
     }
 
     /// <summary>
@@ -233,48 +233,58 @@ public class Win32ProcessReader : BaseEndianReader
 
         filePath = Path.GetFullPath(filePath);
 
-        nint kernel32 = GetModuleHandle("kernel32.dll");
-        if (kernel32 == 0)
+        // NOTE(VNC): The string overload of GetModuleHandle returns a handle that calls FreeLibrary on release, which would drop a
+        // reference to kernel32 that GetModuleHandle never added.
+        HMODULE kernel32;
+
+        fixed (char* moduleName = "kernel32.dll")
+            kernel32 = PInvoke.GetModuleHandle(moduleName);
+
+        if (kernel32.IsNull)
             return false;
 
-        nint loadLibraryFunction = GetProcAddress(kernel32, "LoadLibraryW");
-        if (loadLibraryFunction == 0)
+        FARPROC loadLibraryFunction;
+
+        fixed (byte* procName = "LoadLibraryW"u8)
+            loadLibraryFunction = PInvoke.GetProcAddress(kernel32, new PCSTR(procName));
+
+        if (loadLibraryFunction.IsNull)
             return false;
 
         byte[] pathBytes = Encoding.Unicode.GetBytes(filePath + "\0");
 
-        nint remotePath = VirtualAllocEx(_processHandle, 0, (nuint)pathBytes.Length, c_MemCommit | c_MemReserve, c_PageReadWrite);
-        if (remotePath == 0)
+        void* remotePath = PInvoke.VirtualAllocEx(_processHandle, null, (nuint)pathBytes.Length, VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT | VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE, PAGE_PROTECTION_FLAGS.PAGE_READWRITE);
+        if (remotePath == null)
             return false;
 
         bool releaseRemotePath = true;
 
         try
         {
-            fixed (byte* pathPointer = pathBytes)
-            {
-                if (!WriteProcessMemory(_processHandle, remotePath, pathPointer, (nuint)pathBytes.Length, out nuint written) || written != (nuint)pathBytes.Length)
-                    return false;
-            }
+            if (!PInvoke.WriteProcessMemory(_processHandle, remotePath, pathBytes, out nuint written) || written != (nuint)pathBytes.Length)
+                return false;
 
-            using var thread = CreateRemoteThread(_processHandle, 0, 0, loadLibraryFunction, remotePath, 0, 0);
+            // NOTE(VNC): The start routine is LoadLibraryW in the target process, not managed code. A delegate made from a function pointer
+            // marshals back to that same pointer, so the remote thread starts there.
+            var startRoutine = Marshal.GetDelegateForFunctionPointer<LPTHREAD_START_ROUTINE>(loadLibraryFunction.Value);
+            using var thread = PInvoke.CreateRemoteThread(_processHandle, null, 0, startRoutine, remotePath, 0);
 
             if (thread.IsInvalid)
                 return false;
 
-            if (WaitForSingleObject(thread, unchecked((uint)timeoutMilliseconds)) != c_WaitObject0)
+            if (PInvoke.WaitForSingleObject(thread, unchecked((uint)timeoutMilliseconds)) != WAIT_EVENT.WAIT_OBJECT_0)
             {
                 releaseRemotePath = false;
                 return false;
             }
 
             // The exit code is the low 32 bits of the module handle returned by LoadLibraryW; zero means the load failed.
-            return GetExitCodeThread(thread, out uint exitCode) && exitCode != 0;
+            return PInvoke.GetExitCodeThread(thread, out uint exitCode) && exitCode != 0;
         }
         finally
         {
             if (releaseRemotePath)
-                _ = VirtualFreeEx(_processHandle, remotePath, 0, c_MemRelease);
+                _ = PInvoke.VirtualFreeEx(_processHandle, remotePath, 0, VIRTUAL_FREE_TYPE.MEM_RELEASE);
         }
     }
 
@@ -325,7 +335,7 @@ public class Win32ProcessReader : BaseEndianReader
         if (!Environment.Is64BitOperatingSystem)
             return true;
 
-        if (IsWow64Process(_processHandle, out bool isWow64))
+        if (PInvoke.IsWow64Process(_processHandle, out var isWow64))
             return isWow64;
 
         return !Environment.Is64BitProcess;

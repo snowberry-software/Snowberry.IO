@@ -31,16 +31,16 @@ public class ArchitectureTests
     /// <summary>
     /// Finds the <c>src</c> directory by walking up from the test output directory to the solution file.
     /// </summary>
-    /// <returns>The full path of the directory that contains <c>Snowberry.IO.sln</c>.</returns>
+    /// <returns>The full path of the directory that contains <c>Snowberry.IO.slnx</c>.</returns>
     private static string FindSourceDirectory()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory != null; directory = directory.Parent)
         {
-            if (File.Exists(Path.Combine(directory.FullName, "Snowberry.IO.sln")))
+            if (File.Exists(Path.Combine(directory.FullName, "Snowberry.IO.slnx")))
                 return directory.FullName;
         }
 
-        throw new DirectoryNotFoundException("Could not find Snowberry.IO.sln above " + AppContext.BaseDirectory);
+        throw new DirectoryNotFoundException("Could not find Snowberry.IO.slnx above " + AppContext.BaseDirectory);
     }
 
     [Fact]
@@ -109,7 +109,10 @@ public class ArchitectureTests
     public void SnowberryIOTypes_Always_ResideInSnowberryIONamespace()
     {
         // Snowberry.IO owns Snowberry.IO and its child namespaces, except the ones of Snowberry.IO.Common and Snowberry.IO.SingleFile.
+        // CsWin32 generates the Win32 interop in Windows.Win32, plus a polyfill of OverloadResolutionPriorityAttribute on .NET Standard.
         Types().That().ResideInAssembly(s_IOAssembly).And().DoNotHaveAnyAttributes(typeof(CompilerGeneratedAttribute))
+            .And().DoNotResideInNamespaceMatching(@"^Windows\.Win32(\..+)?$")
+            .And().DoNotHaveFullName("System.Runtime.CompilerServices.OverloadResolutionPriorityAttribute")
             .Should().ResideInNamespaceMatching(@"^Snowberry\.IO(\.(?!Common(\.|$)|SingleFile(\.|$)).+)?$")
             .Check(s_Architecture);
     }

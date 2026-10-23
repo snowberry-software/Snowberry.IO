@@ -1,0 +1,14 @@
+CloseHandle
+CreateRemoteThread
+GetExitCodeThread
+GetModuleHandle
+GetProcAddress
+IsWow64Process
+OpenProcess
+ReadProcessMemory
+VirtualAllocEx
+VirtualFreeEx
+WaitForSingleObject
+WriteProcessMemory
+PROCESS_ACCESS_RIGHTS
+WAIT_EVENT

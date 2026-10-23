@@ -21,7 +21,7 @@ namespace Snowberry.IO.Tests.Reader;
 /// Contains tests for <see cref="Win32ProcessReader"/>, which read the memory of the test process itself.
 /// </summary>
 #if NET5_0_OR_GREATER
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows6.0.6000")]
 #endif
 public class Win32ProcessReaderTests
 {
@@ -734,6 +734,34 @@ public class Win32ProcessReaderTests
         value.Should().Be(0);
         reader.Position.Should().Be(start);
         analyzer.TotalBytes.Should().Be(0);
+    }
+
+    [Fact]
+    public void InjectDLL_SystemLibraryIntoCurrentProcess_ReturnsTrue()
+    {
+        Assert.SkipUnless(s_IsWindows, "Windows only.");
+
+        // PROCESS_CREATE_THREAD, PROCESS_VM_OPERATION and PROCESS_VM_WRITE on top of the read access.
+        const uint injectAccess = Win32ProcessReader.c_DefaultAccessFlags | 0x0002 | 0x0008 | 0x0020;
+        using var reader = new Win32ProcessReader(CurrentProcessId, 0, accessFlags: injectAccess);
+
+        bool loaded = reader.InjectDLL(Path.Combine(Environment.SystemDirectory, "version.dll"));
+
+        loaded.Should().BeTrue();
+    }
+
+    [Fact]
+    public void MemoryBasicInformation_Layout_MatchesNativeStruct()
+    {
+        // NOTE(VNC): The struct is declared by hand because CsWin32 generates it only for a specific CPU architecture; sorting its
+        // fields breaks every VirtualQueryEx call, which makes ScanSignatures loop forever over unreadable pages.
+        var type = typeof(Win32ProcessReader).Assembly.GetType("Snowberry.IO.Utils.Win32Helper+MemoryBasicInformation", throwOnError: true)!;
+        int p = IntPtr.Size;
+        long[] expected = p == 8 ? [0, 8, 16, 24, 32, 36, 40] : [0, 4, 8, 12, 16, 20, 24];
+        string[] fields = ["BaseAddress", "AllocationBase", "AllocationProtect", "RegionSize", "State", "Protect", "Type"];
+
+        fields.Select(field => (long)Marshal.OffsetOf(type, field)).Should().Equal(expected);
+        Marshal.SizeOf(type).Should().Be(p == 8 ? 48 : 28);
     }
 
     private static int CurrentProcessId

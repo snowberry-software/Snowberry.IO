@@ -154,6 +154,9 @@ public class ReaderReadStringTests
         AssertSameStrings(Prefixed(payload, payload), encoding, int.MaxValue, canSeek: true, stringCount: 2);
     }
 
+    // NOTE(VNC): The reader follows the BinaryReader of .NET; the one of .NET Framework accepts a fifth length byte above 0x0F and
+    // words its exceptions differently, so it is no reference.
+#if !NETFRAMEWORK
     [Theory]
     [InlineData(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x0F })]
     [InlineData(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x7F })]
@@ -170,6 +173,7 @@ public class ReaderReadStringTests
         actualException.Message.Should().Be(expectedException.Message);
         actual.Position.Should().Be(expected.BaseStream.Position);
     }
+#endif
 
     [Fact]
     [Trait("Category", "Stress")]

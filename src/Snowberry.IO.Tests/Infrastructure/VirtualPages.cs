@@ -1,5 +1,10 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using Windows.Win32;
+using Windows.Win32.System.Memory;
+#if NET5_0_OR_GREATER
+using System.Runtime.Versioning;
+#endif
 
 namespace Snowberry.IO.Tests.Infrastructure;
 
@@ -7,7 +12,10 @@ namespace Snowberry.IO.Tests.Infrastructure;
 /// Pages of the current process allocated with <c>VirtualAlloc</c>, some of which a test can make unreadable.
 /// </summary>
 /// <remarks>The pages are released when the instance is disposed.</remarks>
-internal sealed class VirtualPages : IDisposable
+#if NET5_0_OR_GREATER
+[SupportedOSPlatform("windows5.1.2600")]
+#endif
+internal sealed unsafe class VirtualPages : IDisposable
 {
     /// <summary>
     /// The size of a memory page in bytes.
@@ -17,14 +25,6 @@ internal sealed class VirtualPages : IDisposable
     // Allocations start at multiples of the allocation granularity, so the pages of a separate allocation that lies this far
     // after the first one are separated from it by free address space.
     private const int c_AllocationGranularity = 64 * 1024;
-
-    private const uint c_MemCommit = 0x1000;
-    private const uint c_MemDecommit = 0x4000;
-    private const uint c_MemRelease = 0x8000;
-    private const uint c_MemReserve = 0x2000;
-    private const uint c_PageGuard = 0x100;
-    private const uint c_PageNoAccess = 0x01;
-    private const uint c_PageReadWrite = 0x04;
 
     private readonly List<IntPtr> _allocations = [];
 
@@ -41,12 +41,12 @@ internal sealed class VirtualPages : IDisposable
     /// <returns>The pages, filled with bytes that are never zero and never form a test signature.</returns>
     public static VirtualPages Allocate(int pageCount)
     {
-        var address = VirtualAlloc(IntPtr.Zero, (uint)(pageCount * c_PageSize), c_MemCommit | c_MemReserve, c_PageReadWrite);
+        nint address = (nint)PInvoke.VirtualAlloc(null, (uint)(pageCount * c_PageSize), VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT | VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE, PAGE_PROTECTION_FLAGS.PAGE_READWRITE);
 
         if (address == IntPtr.Zero)
             throw new Win32Exception(Marshal.GetLastWin32Error());
 
-        var pages = new VirtualPages(address.ToInt64(), pageCount);
+        var pages = new VirtualPages((long)address, pageCount);
         pages._allocations.Add(address);
         pages.Fill(0, pageCount);
         return pages;
@@ -63,19 +63,19 @@ internal sealed class VirtualPages : IDisposable
         for (int attempt = 0; attempt < 16; attempt++)
         {
             // Reserving and releasing the whole span finds free address space; another thread may take it before both pages are placed.
-            var span = VirtualAlloc(IntPtr.Zero, gapSize + c_PageSize, c_MemReserve, c_PageNoAccess);
+            nint span = (nint)PInvoke.VirtualAlloc(null, gapSize + c_PageSize, VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE, PAGE_PROTECTION_FLAGS.PAGE_NOACCESS);
 
             if (span == IntPtr.Zero)
                 throw new Win32Exception(Marshal.GetLastWin32Error());
 
-            VirtualFree(span, UIntPtr.Zero, c_MemRelease);
+            PInvoke.VirtualFree((void*)span, 0, VIRTUAL_FREE_TYPE.MEM_RELEASE);
 
-            var first = VirtualAlloc(span, c_PageSize, c_MemCommit | c_MemReserve, c_PageReadWrite);
-            var second = VirtualAlloc(span + gapSize, c_PageSize, c_MemCommit | c_MemReserve, c_PageReadWrite);
+            nint first = (nint)PInvoke.VirtualAlloc((void*)span, c_PageSize, VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT | VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE, PAGE_PROTECTION_FLAGS.PAGE_READWRITE);
+            nint second = (nint)PInvoke.VirtualAlloc((void*)(span + gapSize), c_PageSize, VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT | VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE, PAGE_PROTECTION_FLAGS.PAGE_READWRITE);
 
             if (first == span && second == span + gapSize)
             {
-                var pages = new VirtualPages(span.ToInt64(), (gapSize / c_PageSize) + 1);
+                var pages = new VirtualPages((long)span, (gapSize / c_PageSize) + 1);
                 pages._allocations.Add(first);
                 pages._allocations.Add(second);
                 pages.Fill(0, 1);
@@ -84,30 +84,19 @@ internal sealed class VirtualPages : IDisposable
             }
 
             if (first != IntPtr.Zero)
-                VirtualFree(first, UIntPtr.Zero, c_MemRelease);
+                PInvoke.VirtualFree((void*)first, 0, VIRTUAL_FREE_TYPE.MEM_RELEASE);
 
             if (second != IntPtr.Zero)
-                VirtualFree(second, UIntPtr.Zero, c_MemRelease);
+                PInvoke.VirtualFree((void*)second, 0, VIRTUAL_FREE_TYPE.MEM_RELEASE);
         }
 
         throw new InvalidOperationException("Could not allocate two pages with free address space between them.");
     }
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern IntPtr VirtualAlloc(IntPtr lpAddress, nuint dwSize, uint flAllocationType, uint flProtect);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool VirtualFree(IntPtr lpAddress, nuint dwSize, uint dwFreeType);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool VirtualProtect(IntPtr lpAddress, nuint dwSize, uint flNewProtect, out uint lpflOldProtect);
-
     public void Dispose()
     {
-        foreach (var allocation in _allocations)
-            VirtualFree(allocation, UIntPtr.Zero, c_MemRelease);
+        foreach (nint allocation in _allocations)
+            PInvoke.VirtualFree((void*)allocation, 0, VIRTUAL_FREE_TYPE.MEM_RELEASE);
 
         _allocations.Clear();
     }
@@ -119,12 +108,12 @@ internal sealed class VirtualPages : IDisposable
     /// <param name="kind">How the page is made unreadable.</param>
     public void MakeUnreadable(int index, UnreadablePageKind kind)
     {
-        nint page = new IntPtr(PageAddress(index));
+        void* page = (void*)(nint)PageAddress(index);
         bool succeeded = kind switch
         {
-            UnreadablePageKind.NoAccess => VirtualProtect(page, c_PageSize, c_PageNoAccess, out _),
-            UnreadablePageKind.Guard => VirtualProtect(page, c_PageSize, c_PageReadWrite | c_PageGuard, out _),
-            UnreadablePageKind.Reserved => VirtualFree(page, c_PageSize, c_MemDecommit),
+            UnreadablePageKind.NoAccess => PInvoke.VirtualProtect(page, c_PageSize, PAGE_PROTECTION_FLAGS.PAGE_NOACCESS, out _),
+            UnreadablePageKind.Guard => PInvoke.VirtualProtect(page, c_PageSize, PAGE_PROTECTION_FLAGS.PAGE_READWRITE | PAGE_PROTECTION_FLAGS.PAGE_GUARD, out _),
+            UnreadablePageKind.Reserved => PInvoke.VirtualFree(page, c_PageSize, VIRTUAL_FREE_TYPE.MEM_DECOMMIT),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
         };
 

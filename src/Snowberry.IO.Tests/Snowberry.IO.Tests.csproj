@@ -6,6 +6,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<IsPackable>false</IsPackable>
 		<Platforms>AnyCPU</Platforms>
@@ -17,6 +18,7 @@
 		<PackageReference Include="AwesomeAssertions" />
 		<PackageReference Include="TngTech.ArchUnitNET" />
 		<PackageReference Include="TngTech.ArchUnitNET.xUnitV3" />
+		<PackageReference Include="Microsoft.Windows.CsWin32" PrivateAssets="all" />
 	</ItemGroup>
 
 	<ItemGroup>

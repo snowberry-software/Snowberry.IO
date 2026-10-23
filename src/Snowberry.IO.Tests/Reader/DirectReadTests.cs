@@ -19,7 +19,7 @@ namespace Snowberry.IO.Tests.Reader;
 /// active, and for switching between them and the reads that go through the region view and the analyzer.
 /// </summary>
 #if NET5_0_OR_GREATER
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows6.0.6000")]
 #endif
 public class DirectReadTests
 {

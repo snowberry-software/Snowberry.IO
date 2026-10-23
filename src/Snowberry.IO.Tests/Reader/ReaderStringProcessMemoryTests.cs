@@ -3,6 +3,8 @@ using System.Runtime.InteropServices;
 using AwesomeAssertions;
 using Snowberry.IO.Common.Reader;
 using Snowberry.IO.Reader;
+using Windows.Win32;
+using Windows.Win32.System.Memory;
 using Xunit;
 #if NET5_0_OR_GREATER
 using System.Runtime.Versioning;
@@ -14,7 +16,7 @@ namespace Snowberry.IO.Tests.Reader;
 /// Contains tests for the string reads of <see cref="Win32ProcessReader"/> next to memory that cannot be read, in the test process itself.
 /// </summary>
 #if NET5_0_OR_GREATER
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows6.0.6000")]
 #endif
 public class ReaderStringProcessMemoryTests
 {
@@ -89,40 +91,24 @@ public class ReaderStringProcessMemoryTests
     /// <summary>
     /// A readable and writable page of the current process, directly followed by a page that cannot be accessed.
     /// </summary>
-    private sealed class PageBeforeUnreadablePage : IDisposable
+    private sealed unsafe class PageBeforeUnreadablePage : IDisposable
     {
-        private const uint c_MemCommitReserve = 0x3000;
-        private const uint c_MemRelease = 0x8000;
-        private const uint c_PageNoAccess = 0x01;
-        private const uint c_PageReadWrite = 0x04;
-
         private readonly IntPtr _base;
 
         public PageBeforeUnreadablePage()
         {
-            _base = VirtualAlloc(IntPtr.Zero, 2 * c_PageSize, c_MemCommitReserve, c_PageReadWrite);
+            _base = (nint)PInvoke.VirtualAlloc(null, 2 * c_PageSize, VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT | VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE, PAGE_PROTECTION_FLAGS.PAGE_READWRITE);
 
             if (_base == IntPtr.Zero)
                 throw new InvalidOperationException("VirtualAlloc failed.");
 
-            if (!VirtualProtect(_base + c_PageSize, c_PageSize, c_PageNoAccess, out _))
+            if (!PInvoke.VirtualProtect((void*)(_base + c_PageSize), c_PageSize, PAGE_PROTECTION_FLAGS.PAGE_NOACCESS, out _))
                 throw new InvalidOperationException("VirtualProtect failed.");
         }
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern IntPtr VirtualAlloc(IntPtr address, nuint size, uint allocationType, uint protect);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool VirtualFree(IntPtr address, nuint size, uint freeType);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool VirtualProtect(IntPtr address, nuint size, uint newProtect, out uint oldProtect);
-
         public void Dispose()
         {
-            _ = VirtualFree(_base, UIntPtr.Zero, c_MemRelease);
+            _ = PInvoke.VirtualFree((void*)_base, 0, VIRTUAL_FREE_TYPE.MEM_RELEASE);
         }
 
         /// <summary>

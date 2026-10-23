@@ -248,7 +248,7 @@ public class TryReadTests
 
     [Fact]
 #if NET5_0_OR_GREATER
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("windows6.0.6000")]
 #endif
     public void TryReadInt32_ProcessMemoryInsideRegionView_ReturnsFalseAtRegionEndAndRestoresPosition()
     {
