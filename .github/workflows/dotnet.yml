@@ -61,16 +61,20 @@ jobs:
       - name: Test (${{ matrix.framework }})
         run: dotnet test --project Snowberry.IO.Tests --configuration Release --no-build --framework ${{ matrix.framework }}
 
-      # The deploy job publishes exactly these packages, so they are only uploaded for the tags the deploy job runs on.
+      # The deploy job publishes exactly these packages, so they are only uploaded for the tags the deploy job runs on. They are
+      # collected into one folder first: an artifact of several paths keeps the folders below their common parent (src/).
+      - name: Collect packages
+        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          mkdir -p ../packages
+          cp Snowberry.IO/bin/Release/*.nupkg Snowberry.IO.Common/bin/Release/*.nupkg Snowberry.IO.SingleFile/bin/Release/*.nupkg ../packages/
+
       - name: Upload packages
         if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v7
         with:
           name: packages
-          path: |
-            src/Snowberry.IO/bin/Release/*.nupkg
-            src/Snowberry.IO.Common/bin/Release/*.nupkg
-            src/Snowberry.IO.SingleFile/bin/Release/*.nupkg
+          path: packages/*.nupkg
           if-no-files-found: error
 
   deploy:
