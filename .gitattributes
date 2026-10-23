@@ -1,0 +1,5 @@
+# Normalize all text files to LF; git auto-detects binary files.
+* text=auto eol=lf
+
+# Explicit binaries
+*.snk binary

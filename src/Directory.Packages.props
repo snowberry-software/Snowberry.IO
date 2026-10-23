@@ -1,0 +1,22 @@
+<Project>
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
+        <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+        <PackageVersion Include="CommandLineParser" Version="2.9.1" />
+        <PackageVersion Include="coverlet.MTP" Version="10.1.0" />
+        <PackageVersion Include="IndexRange" Version="1.1.1" />
+        <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.367" />
+        <PackageVersion Include="Serilog" Version="4.4.0" />
+        <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
+        <PackageVersion Include="Serilog.Sinks.Debug" Version="3.0.0" />
+        <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
+        <PackageVersion Include="System.Memory" Version="4.6.3" />
+        <PackageVersion Include="TngTech.ArchUnitNET" Version="0.13.4" />
+        <PackageVersion Include="TngTech.ArchUnitNET.xUnitV3" Version="0.13.4" />
+        <PackageVersion Include="xunit.v3" Version="4.0.1" />
+    </ItemGroup>
+</Project>

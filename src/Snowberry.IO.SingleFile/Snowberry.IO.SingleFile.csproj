@@ -3,16 +3,19 @@
     <Import Project="../NuGetPackage.props" />
 
     <PropertyGroup>
-        <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-        <Description>A library for reading and modifying bundles from single-file published .NET applications.</Description>
-        <PackageTags>single-file-publish, single-file, dotnet, csharp, cs, singlefilepublish</PackageTags>
+        <Description>Reads, extracts and modifies the bundles of single-file published .NET applications.</Description>
+        <PackageTags>single-file single-file-publish bundle apphost dotnet</PackageTags>
 
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Snowberry.IO.Tests" Key="0024000004800000940000000602000000240000525341310004000001000100bd5f1069af58b06abc75c0f261bade15a62e4d86e1d75e99949e4071c5de6d8f503627da1cefc4d2aeb4fdacf94d1d79b85946a6cd954b0a21cbcf02abdf5492a6308b4543cf16e6163ea358c54fecdb1a5d42e76ffa8e8f80dcd72b509640e527ec8300bfd2c3f328acf191e8b12d92095408dbabbfc55766c584c88fb1bfaa" />
+    </ItemGroup>
 
     <ItemGroup>
         <None Include="README.md">

@@ -4,6 +4,9 @@ namespace Snowberry.IO.SingleFile.CLI;
 
 internal class Options
 {
+    [Option('f', "force", Required = false, HelpText = "Overwrites existing files in the output directory.")]
+    public bool Force { get; set; }
+
     [Option('i', "input", Required = true, HelpText = "Sets the input single file path.")]
     public string InputFilePath { get; set; } = string.Empty;
 

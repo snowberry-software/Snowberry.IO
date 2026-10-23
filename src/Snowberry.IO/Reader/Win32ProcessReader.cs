@@ -1,201 +1,429 @@
-﻿using System.Runtime.Versioning;
+using System.Buffers;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Text;
 using Snowberry.IO.Common.Reader;
-using Snowberry.IO.Common.Reader.Interfaces;
+using Snowberry.IO.Reader.Streams;
+using Snowberry.IO.Utils;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.System.Memory;
+using Windows.Win32.System.Threading;
 using static Snowberry.IO.Utils.Win32Helper;
+#if NET5_0_OR_GREATER
+using System.Runtime.Versioning;
+#endif
 
 namespace Snowberry.IO.Reader;
 
 /// <summary>
-/// Used for reading memory from a windows process.
+/// A <see cref="BinaryReader"/> over the memory of a Windows process.
 /// </summary>
-/// <remarks>String operations may not work (except <see cref="IEndianReader.ReadCString"/>).</remarks>
+/// <remarks>
+/// <para><see cref="BaseEndianReader.Position"/> is a virtual address in the target process. Without a region view,
+/// <see cref="BaseEndianReader.Length"/> is <c>0</c>, so string methods that depend on the length of the data do not work;
+/// use <see cref="ReadCString"/> to read strings.</para>
+/// <para>This type is not thread-safe.</para>
+/// </remarks>
 #if NET5_0_OR_GREATER
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows6.0.6000")]
 #endif
-public partial class Win32ProcessReader : BaseEndianReader
+public class Win32ProcessReader : BaseEndianReader
 {
-    protected long _position;
-    private readonly IntPtr _processHandle;
+    /// <summary>
+    /// The default access rights requested by <see cref="Win32ProcessReader(int, long, Analyzer?, uint)"/>:
+    /// <c>PROCESS_VM_READ</c> and <c>PROCESS_QUERY_LIMITED_INFORMATION</c>.
+    /// </summary>
+    public const uint c_DefaultAccessFlags = (uint)(PROCESS_ACCESS_RIGHTS.PROCESS_VM_READ | PROCESS_ACCESS_RIGHTS.PROCESS_QUERY_LIMITED_INFORMATION);
 
     /// <summary>
-    /// Creates a new reader for the process.
+    /// The maximum number of bytes <see cref="ReadCString"/> reads before it gives up looking for the terminator.
+    /// </summary>
+    public const int c_MaxCStringByteLength = 1024 * 1024;
+
+    private readonly ProcessMemoryReaderStream _memory;
+    private readonly ProcessSafeHandle _processHandle;
+    private bool? _isTarget32Bit;
+
+    /// <summary>
+    /// Opens the process with the given id and creates a reader for it.
     /// </summary>
     /// <param name="pid">The id of the process.</param>
-    /// <param name="startPosition">The default position that will be used for <see cref="Position"/>.</param>
+    /// <param name="startPosition">The initial virtual address used for <see cref="BaseEndianReader.Position"/>.</param>
     /// <param name="analyzer">The optional analyzer instance.</param>
-    public Win32ProcessReader(int pid, long startPosition, Analyzer? analyzer = null, uint accessFlags = (uint)ProcessAccess.PROCESS_VM_READ) : base(analyzer)
+    /// <param name="accessFlags">
+    /// The access rights passed to <c>OpenProcess</c>. Reading requires <c>PROCESS_VM_READ</c> (<c>0x0010</c>);
+    /// <see cref="InjectDLL(string, int)"/> additionally requires <c>PROCESS_CREATE_THREAD</c> (<c>0x0002</c>),
+    /// <c>PROCESS_VM_OPERATION</c> (<c>0x0008</c>) and <c>PROCESS_VM_WRITE</c> (<c>0x0020</c>).
+    /// </param>
+    /// <exception cref="Win32Exception">The process could not be opened.</exception>
+    public Win32ProcessReader(int pid, long startPosition, Analyzer? analyzer = null, uint accessFlags = c_DefaultAccessFlags)
+        : this(new ProcessMemoryReaderStream(OpenProcessHandle(pid, accessFlags), startPosition), analyzer)
     {
-        _processHandle = OpenProcess(accessFlags, false, pid);
-        _position = startPosition;
+    }
+
+    /// <summary>
+    /// Creates a reader for an already opened process handle.
+    /// </summary>
+    /// <remarks>
+    /// The handle is closed when the reader is disposed unless <see cref="CloseHandleOnDispose"/> is set to <see langword="false"/>.
+    /// Set it to <see langword="false"/> when the handle is owned by someone else, for example <see cref="System.Diagnostics.Process.Handle"/>.
+    /// </remarks>
+    /// <param name="handle">The handle of the process.</param>
+    /// <param name="startPosition">The initial virtual address used for <see cref="BaseEndianReader.Position"/>.</param>
+    /// <param name="analyzer">The optional analyzer instance.</param>
+    /// <exception cref="ArgumentException"><paramref name="handle"/> is <see cref="IntPtr.Zero"/>.</exception>
+    public Win32ProcessReader(IntPtr handle, long startPosition, Analyzer? analyzer = null)
+        : this(new ProcessMemoryReaderStream(WrapProcessHandle(handle), startPosition), analyzer)
+    {
+    }
+
+    /// <summary>
+    /// Creates a reader over <paramref name="memory"/>.
+    /// </summary>
+    /// <param name="memory">The stream over the memory of the process.</param>
+    /// <param name="analyzer">The optional analyzer instance.</param>
+    private Win32ProcessReader(ProcessMemoryReaderStream memory, Analyzer? analyzer) : base(memory, analyzer, 0, EncodingDefaults.s_Utf8)
+    {
+        _memory = memory;
+        _processHandle = memory.Handle;
         analyzer?.Initialize(this);
     }
+
     /// <summary>
-    /// Creates a new reader for the process.
+    /// Finds the first null code unit in <paramref name="codeUnits"/>.
+    /// </summary>
+    /// <param name="codeUnits">The whole code units to search.</param>
+    /// <param name="codeUnitSize">The size of a code unit in bytes: 1, 2 or 4.</param>
+    /// <returns>The byte offset of the null code unit, or -1 if there is none.</returns>
+    private static int IndexOfNullCodeUnit(ReadOnlySpan<byte> codeUnits, int codeUnitSize)
+    {
+        int index = codeUnitSize switch
+        {
+            1 => codeUnits.IndexOf((byte)0),
+            2 => MemoryMarshal.Cast<byte, ushort>(codeUnits).IndexOf((ushort)0),
+            _ => MemoryMarshal.Cast<byte, uint>(codeUnits).IndexOf(0u)
+        };
+
+        return index < 0 ? -1 : index * codeUnitSize;
+    }
+
+    /// <summary>
+    /// Opens the process with the given id.
+    /// </summary>
+    /// <param name="pid">The id of the process.</param>
+    /// <param name="accessFlags">The access rights passed to <c>OpenProcess</c>.</param>
+    /// <returns>The handle of the process.</returns>
+    /// <exception cref="Win32Exception">The process could not be opened.</exception>
+    private static ProcessSafeHandle OpenProcessHandle(int pid, uint accessFlags)
+    {
+        var handle = PInvoke.OpenProcess((PROCESS_ACCESS_RIGHTS)accessFlags, false, unchecked((uint)pid));
+
+        if (handle.IsNull)
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+
+        return new ProcessSafeHandle(handle);
+    }
+
+    /// <summary>
+    /// Wraps an already opened process handle.
     /// </summary>
     /// <param name="handle">The handle of the process.</param>
-    /// <param name="startPosition">The default position that will be used for <see cref="Position"/>.</param>
-    /// <param name="analyzer">The optional analyzer instance.</param>
-    public Win32ProcessReader(IntPtr handle, long startPosition, Analyzer? analyzer = null) : base(analyzer)
+    /// <returns>The wrapped handle, which closes <paramref name="handle"/> on release.</returns>
+    /// <exception cref="ArgumentException"><paramref name="handle"/> is <see cref="IntPtr.Zero"/>.</exception>
+    private static ProcessSafeHandle WrapProcessHandle(IntPtr handle)
     {
-        _processHandle = handle;
-        _position = startPosition;
-        analyzer?.Initialize(this);
+        if (handle == IntPtr.Zero)
+            throw new ArgumentException("The process handle must not be zero.", nameof(handle));
+
+        return new ProcessSafeHandle(handle);
+    }
+
+    /// <summary>
+    /// Always throws, because process memory has no end to copy to.
+    /// </summary>
+    /// <param name="destination">The destination stream.</param>
+    /// <exception cref="NotSupportedException">Always thrown; use <see cref="CopyTo(Stream, int, int)"/> instead.</exception>
+    public override void CopyTo(Stream destination)
+    {
+        throw new NotSupportedException($"Process memory has no end; use {nameof(CopyTo)} with a length instead.");
     }
 
     /// <inheritdoc/>
-    protected override int InternalReadBytes(byte[] inBuffer, int offset, int byteCount)
-    {
-        return InternalReadBytes(inBuffer.AsSpan()[offset..byteCount]);
-    }
-
-    /// <inheritdoc/>
-    protected override void InternalReadBytesExactly(Span<byte> inBuffer)
+    /// <exception cref="ArgumentNullException"><paramref name="destination"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="length"/> is negative or <paramref name="bufferSize"/> is not positive.</exception>
+    /// <exception cref="ObjectDisposedException">The reader is disposed.</exception>
+    public override void CopyTo(Stream destination, int length, int bufferSize = 0x14000)
     {
         ThrowIfDisposed();
 
-        int read = InternalReadBytes(inBuffer);
+        _ = destination ?? throw new ArgumentNullException(nameof(destination));
 
-        if (read != inBuffer.Length)
-            ThrowEndOfStreamException();
+        if (length < 0)
+            throw new ArgumentOutOfRangeException(nameof(length), "Length must be non-negative.");
+
+        if (bufferSize <= 0)
+            throw new ArgumentOutOfRangeException(nameof(bufferSize), "Buffer size must be greater than zero.");
+
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Min(bufferSize, Math.Max(length, 1)));
+
+        try
+        {
+            while (length > 0)
+            {
+                int read = Read(buffer.AsSpan(0, Math.Min(buffer.Length, length)));
+
+                if (read == 0)
+                    break;
+
+                destination.Write(buffer, 0, read);
+                length -= read;
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 
-    /// <inheritdoc/>
-    /// <exception cref="NotImplementedException"></exception>
-    public override void CopyTo(Stream destination)
-    {
-        throw new NotImplementedException();
-    }
 
-    /// <inheritdoc/>
-    /// <exception cref="NotImplementedException"></exception>
-    public override void CopyTo(Stream destination, int length, int bufferSize = 81920)
+    /// <summary>
+    /// Restricts reading to the given region of the target process's address space.
+    /// </summary>
+    /// <remarks>
+    /// Unlike stream-based readers, the region is not checked against <see cref="BaseEndianReader.ActualLength"/>, because process memory has no known length.
+    /// </remarks>
+    /// <param name="region">The region, where <see cref="RegionRange.StartPosition"/> is a virtual address.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The start or size of <paramref name="region"/> is negative.</exception>
+    /// <exception cref="ObjectDisposedException">The reader is disposed.</exception>
+    public override void EnableRegionView(RegionRange region)
     {
-        throw new NotImplementedException();
+        ThrowIfDisposed();
+
+        if (region.StartPosition < 0 || region.Size < 0)
+            throw new ArgumentOutOfRangeException(nameof(region), "The region start and size must be non-negative.");
+
+        _readerStream.EnableRegionView(region);
     }
 
     /// <summary>
-    /// Inject dynamic library.
+    /// Loads a dynamic library into the target process by running <c>LoadLibraryW</c> on a remote thread.
     /// </summary>
-    /// <param name="filePath">The full path of the dynamic library to inject.</param>
-    /// <returns>Whether the dynamic library got successfully injected.</returns>
-    public bool InjectDLL(string filePath)
+    /// <remarks>
+    /// The process must have been opened with <c>PROCESS_CREATE_THREAD</c>, <c>PROCESS_VM_OPERATION</c> and <c>PROCESS_VM_WRITE</c> access,
+    /// and must have the same bitness as the current process. If the remote thread does not finish within
+    /// <paramref name="timeoutMilliseconds"/>, the memory holding the library path is left allocated because the thread may still use it.
+    /// </remarks>
+    /// <param name="filePath">The path of the dynamic library to load.</param>
+    /// <param name="timeoutMilliseconds">
+    /// The time to wait for the library to be loaded, or <see cref="Timeout.Infinite"/> to wait indefinitely.
+    /// </param>
+    /// <returns><see langword="true"/> if the library was loaded; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="filePath"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="timeoutMilliseconds"/> is negative and not <see cref="Timeout.Infinite"/>.</exception>
+    /// <exception cref="ObjectDisposedException">The reader is disposed.</exception>
+    public unsafe bool InjectDLL(string filePath, int timeoutMilliseconds = 10_000)
     {
         ThrowIfDisposed();
 
         _ = filePath ?? throw new ArgumentNullException(nameof(filePath));
 
+        if (timeoutMilliseconds < 0 && timeoutMilliseconds != Timeout.Infinite)
+            throw new ArgumentOutOfRangeException(nameof(timeoutMilliseconds), "Timeout must be non-negative or Timeout.Infinite.");
+
         filePath = Path.GetFullPath(filePath);
 
-        nint loadLibraryFunction = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
+        // NOTE(VNC): The string overload of GetModuleHandle returns a handle that calls FreeLibrary on release, which would drop a
+        // reference to kernel32 that GetModuleHandle never added.
+        HMODULE kernel32;
 
-        if (loadLibraryFunction == IntPtr.Zero)
+        fixed (char* moduleName = "kernel32.dll")
+            kernel32 = PInvoke.GetModuleHandle(moduleName);
+
+        if (kernel32.IsNull)
             return false;
 
-        // https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualallocex
-        const int MEM_COMMIT = 0x00001000;
-        const int MEM_RESERVE = 0x00002000;
+        FARPROC loadLibraryFunction;
 
-        // https://docs.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
-        const int PAGE_EXECUTE_READWRITE = 0x40;
+        fixed (byte* procName = "LoadLibraryW"u8)
+            loadLibraryFunction = PInvoke.GetProcAddress(kernel32, new PCSTR(procName));
 
-        // Allocate region to store the DLL name
-        nint libNameAddress = VirtualAllocEx(_processHandle, IntPtr.Zero, (uint)filePath.Length, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-
-        // Check if bytes were allocated
-        if (libNameAddress == IntPtr.Zero)
+        if (loadLibraryFunction.IsNull)
             return false;
 
-        // Get file path as byte array
-        byte[] dllFullPath = Encoding.ASCII.GetBytes(filePath);
+        byte[] pathBytes = Encoding.Unicode.GetBytes(filePath + "\0");
 
-        // Write DLL full path
-        if (!WriteProcessMemory(_processHandle, libNameAddress, dllFullPath, (uint)dllFullPath.Length, out _))
+        void* remotePath = PInvoke.VirtualAllocEx(_processHandle, null, (nuint)pathBytes.Length, VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT | VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE, PAGE_PROTECTION_FLAGS.PAGE_READWRITE);
+        if (remotePath == null)
             return false;
 
-        // Create thread that will call LoadLibraryA with the library name address as argument
-        return CreateRemoteThread(_processHandle, IntPtr.Zero, IntPtr.Zero, loadLibraryFunction, libNameAddress, 0, IntPtr.Zero) != IntPtr.Zero;
-    }
+        bool releaseRemotePath = true;
 
-    /// <inheritdoc />
-    public override string ReadCString()
-    {
-        long stringPointerPos = ReadInt64();
-        long oldPosition = Position;
-
-        Position = stringPointerPos;
-
-        base.ReadCString();
-
-        Position = oldPosition;
-        return _stringBuilder.ToString();
-    }
-
-    /// <inheritdoc/>
-    public override void Dispose()
-    {
-        GC.SuppressFinalize(this);
-
-        Disposed = true;
-
-        if (!CloseHandleOnDispose)
-            return;
-
-        _ = CloseHandle(_processHandle);
-    }
-
-    /// <inheritdoc/>
-    public override bool CanReadData => _processHandle != IntPtr.Zero && !Disposed;
-
-    /// <inheritdoc/>
-    public override long Position
-    {
-        get
+        try
         {
-            ThrowIfDisposed();
+            if (!PInvoke.WriteProcessMemory(_processHandle, remotePath, pathBytes, out nuint written) || written != (nuint)pathBytes.Length)
+                return false;
 
-            return GetViewOrPosition(_position);
+            // NOTE(VNC): The start routine is LoadLibraryW in the target process, not managed code. A delegate made from a function pointer
+            // marshals back to that same pointer, so the remote thread starts there.
+            var startRoutine = Marshal.GetDelegateForFunctionPointer<LPTHREAD_START_ROUTINE>(loadLibraryFunction.Value);
+            using var thread = PInvoke.CreateRemoteThread(_processHandle, null, 0, startRoutine, remotePath, 0);
+
+            if (thread.IsInvalid)
+                return false;
+
+            if (PInvoke.WaitForSingleObject(thread, unchecked((uint)timeoutMilliseconds)) != WAIT_EVENT.WAIT_OBJECT_0)
+            {
+                releaseRemotePath = false;
+                return false;
+            }
+
+            // The exit code is the low 32 bits of the module handle returned by LoadLibraryW; zero means the load failed.
+            return PInvoke.GetExitCodeThread(thread, out uint exitCode) && exitCode != 0;
         }
-
-        set
+        finally
         {
-            ThrowIfDisposed();
-
-            long position = _position;
-            SetPosition(ref position, value);
-            _position = position;
+            if (releaseRemotePath)
+                _ = PInvoke.VirtualFreeEx(_processHandle, remotePath, 0, VIRTUAL_FREE_TYPE.MEM_RELEASE);
         }
     }
-
-    /// <inheritdoc/>
-    /// <remarks>Will always return <see langword="0"/> if no region view is used.</remarks>
-    public override long Length
-    {
-        get
-        {
-            if (IsRegionViewEnabled)
-                return RegionView.Size;
-
-            return 0;
-        }
-    }
-
-    /// <inheritdoc/>
-    public override long ActualPosition
-    {
-        get
-        {
-            ThrowIfDisposed();
-            return _position;
-        }
-    }
-
-    /// <inheritdoc/>
-    /// <remarks>Will always return <see langword="0"/>.</remarks>
-    public override long ActualLength => 0;
 
     /// <summary>
-    /// Specifies whether the handle should be closed when the reader is disposed.
+    /// Reads a pointer at the current <see cref="BaseEndianReader.Position"/> and returns the null-terminated string it points to.
     /// </summary>
-    public bool CloseHandleOnDispose { get; set; } = true;
+    /// <remarks>
+    /// The pointer is 4 bytes for 32-bit target processes and 8 bytes otherwise, and <see cref="BaseEndianReader.Position"/> advances past it.
+    /// Detecting a 32-bit target requires <c>PROCESS_QUERY_LIMITED_INFORMATION</c> access; without it the bitness of the current process is assumed.
+    /// The string is decoded with <see cref="BaseEndianReader.Encoding"/>.
+    /// </remarks>
+    /// <returns>The string the pointer points to.</returns>
+    /// <exception cref="EndOfStreamException">The pointer or the string could not be read.</exception>
+    /// <exception cref="InvalidDataException">No terminator was found within <see cref="c_MaxCStringByteLength"/> bytes.</exception>
+    /// <exception cref="ObjectDisposedException">The reader is disposed.</exception>
+    public override string ReadCString()
+    {
+        ThrowIfDisposed();
+
+        long stringAddress = IsTarget32Bit ? ReadUInt32() : ReadInt64();
+        return ReadCStringAt(stringAddress);
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Skips the allocated pages that are not committed or are <c>PAGE_NOACCESS</c> or <c>PAGE_GUARD</c>, which requires
+    /// <c>PROCESS_QUERY_LIMITED_INFORMATION</c> access. Address space that is not allocated ends the data.
+    /// </remarks>
+    internal override bool SkipUnreadableData(long maxPosition)
+    {
+        return _memory.SkipUnreadable(maxPosition);
+    }
+
+    /// <summary>
+    /// Releases the resources of the reader and closes the process handle unless <see cref="CloseHandleOnDispose"/> is <see langword="false"/>.
+    /// </summary>
+    /// <param name="disposing"><see langword="true"/> to release managed and unmanaged resources; <see langword="false"/> to release only unmanaged resources.</param>
+    protected override void Dispose(bool disposing)
+    {
+        if (!Disposed && disposing)
+            _processHandle.Dispose();
+
+        base.Dispose(disposing);
+    }
+
+    private bool DetermineIsTarget32Bit()
+    {
+        if (!Environment.Is64BitOperatingSystem)
+            return true;
+
+        if (PInvoke.IsWow64Process(_processHandle, out var isWow64))
+            return isWow64;
+
+        return !Environment.Is64BitProcess;
+    }
+
+    /// <summary>
+    /// Reads the null-terminated string at <paramref name="address"/> without moving <see cref="BaseEndianReader.Position"/>.
+    /// </summary>
+    /// <remarks>
+    /// The memory is read in chunks that never cross a page boundary, so an unreadable next page cannot fail an otherwise readable chunk.
+    /// The bytes are not reported to the <see cref="BaseEndianReader.Analyzer"/>.
+    /// </remarks>
+    /// <param name="address">The virtual address of the string.</param>
+    /// <returns>The string, decoded with <see cref="BaseEndianReader.Encoding"/>.</returns>
+    /// <exception cref="EndOfStreamException">The string could not be read.</exception>
+    /// <exception cref="InvalidDataException">No terminator was found within <see cref="c_MaxCStringByteLength"/> bytes.</exception>
+    private string ReadCStringAt(long address)
+    {
+        int codeUnitSize = CodeUnitSize;
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(256);
+        int length = 0;
+        int scanFrom = 0;
+
+        try
+        {
+            while (true)
+            {
+                if (length == buffer.Length)
+                {
+                    if (buffer.Length >= c_MaxCStringByteLength)
+                        throw new InvalidDataException($"No string terminator found within {c_MaxCStringByteLength} bytes.");
+
+                    byte[] larger = ArrayPool<byte>.Shared.Rent(Math.Min(buffer.Length * 2, c_MaxCStringByteLength));
+                    Array.Copy(buffer, larger, length);
+                    ArrayPool<byte>.Shared.Return(buffer);
+                    buffer = larger;
+                }
+
+                // Never cross a page boundary so an unreadable next page cannot fail an otherwise readable chunk.
+                long chunkAddress = address + length;
+                int toPageEnd = c_PageSize - (int)(chunkAddress & (c_PageSize - 1));
+                int chunkSize = Math.Min(buffer.Length - length, toPageEnd);
+
+                int read = _memory.ReadMemory(chunkAddress, buffer.AsSpan(length, chunkSize));
+                if (read == 0)
+                    ThrowEndOfStreamException();
+
+                length += read;
+
+                // Search the code units that this chunk completed; a chunk can end in the middle of one.
+                int aligned = length - (length % codeUnitSize);
+                int terminator = IndexOfNullCodeUnit(buffer.AsSpan(scanFrom, aligned - scanFrom), codeUnitSize);
+
+                if (terminator >= 0)
+                    return _encoding.GetString(buffer, 0, scanFrom + terminator);
+
+                scanFrom = aligned;
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    /// <summary>
+    /// Gets a read-only, seekable stream over the memory of the target process.
+    /// </summary>
+    /// <remarks>
+    /// This is the stream that the inherited <see cref="BinaryReader"/> reads use. It shares <see cref="BaseEndianReader.Position"/>,
+    /// <see cref="BaseEndianReader.Length"/>, the region view and the <see cref="BaseEndianReader.Analyzer"/> with this reader,
+    /// so reading it advances the reader. Without a region view, its position is a virtual address and its length is <c>0</c>.
+    /// It is disposed together with the reader.
+    /// </remarks>
+    public override Stream BaseStream => base.BaseStream;
+
+    /// <inheritdoc/>
+    public override bool CanReadData => !Disposed && !_processHandle.IsInvalid && (!IsRegionViewEnabled || Position < Length);
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the process handle is closed when the reader is disposed or finalized.
+    /// </summary>
+    /// <remarks>Defaults to <see langword="true"/>.</remarks>
+    public bool CloseHandleOnDispose
+    {
+        get => _processHandle.CloseOnRelease;
+        set => _processHandle.CloseOnRelease = value;
+    }
+
+    private bool IsTarget32Bit => _isTarget32Bit ??= DetermineIsTarget32Bit();
 }

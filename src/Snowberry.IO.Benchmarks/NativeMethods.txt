@@ -1,0 +1,4 @@
+OpenProcess
+ReadProcessMemory
+VirtualAllocEx
+WriteProcessMemory

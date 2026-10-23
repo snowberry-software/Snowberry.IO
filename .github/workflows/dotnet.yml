@@ -1,47 +1,105 @@
 name: .NET
 
-# Trigger this workflow on a push, or pull request to the master or develop branch
+# Pushes to master and develop, version tags, and pull requests into master or develop.
 on:
   push:
+    branches: [master, develop]
+    tags: ["v*"]
+    paths-ignore:
+      - "README.md"
   pull_request:
     branches: [master, develop]
     paths-ignore:
       - "README.md"
 
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }}, ${{ matrix.framework }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            dotnet: "10.0.x"
+            framework: "net10.0"
+          # The Win32 process reader tests only run on Windows.
+          - os: windows-latest
+            dotnet: "10.0.x"
+            framework: "net10.0"
+          # .NET Framework runs the netstandard2.0 build and only exists on Windows.
+          - os: windows-latest
+            dotnet: "10.0.x"
+            framework: "net48"
+
+    defaults:
+      run:
+        # Run from src so the SDK picks up src/global.json (Microsoft.Testing.Platform runner).
+        working-directory: ./src
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET ${{ matrix.dotnet }}
+        uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: | 
-            7.x
-            8.x
-            9.x
-            10.x
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Restore
+        run: dotnet restore
+
       - name: Build
-        run: ./build.sh Compile
-      - name: Test
-        run: ./build.sh Test
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test (${{ matrix.framework }})
+        run: dotnet test --project Snowberry.IO.Tests --configuration Release --no-build --framework ${{ matrix.framework }}
+
+      # The deploy job publishes exactly these packages, so they are only uploaded for the tags the deploy job runs on.
+      - name: Upload packages
+        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages
+          path: |
+            src/Snowberry.IO/bin/Release/*.nupkg
+            src/Snowberry.IO.Common/bin/Release/*.nupkg
+            src/Snowberry.IO.SingleFile/bin/Release/*.nupkg
+          if-no-files-found: error
 
   deploy:
+    name: Publish to NuGet
     runs-on: ubuntu-latest
-    env:
-      NUGET_KEY: ${{ secrets.NUGET_KEY }}
     needs: build
-    # Publish for a tag starting with v.
+    # Publish for a tag starting with v, after every test passed.
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+      - name: Download packages
+        uses: actions/download-artifact@v8
         with:
-          dotnet-version: |
-            7.x
-            8.x
-            9.x
-            10.x
-      - name: Deploy
-        run: ./build.sh DeployNuGet -Configuration Release -NuGetPackageFilter Snowberry.IO.*.nupkg
+          name: packages
+          path: packages
+
+      # Refuse to publish when the tag and the package versions disagree. The version is read from the package file names,
+      # which NuGet normalizes: AssemblyVersion 4.1.0.0 needs tag v4.1.0, and 4.1.0.1 needs v4.1.0.1.
+      - name: Check version
+        shell: bash
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          names=$(cd packages && ls *.nupkg)
+          echo "Tag: ${GITHUB_REF_NAME}, packages: ${names}"
+          for package in Snowberry.IO Snowberry.IO.Common Snowberry.IO.SingleFile; do
+            if [ ! -f "packages/${package}.${expected}.nupkg" ]; then
+              echo "::error::Tag ${GITHUB_REF_NAME} does not match the built ${package} package (${names})."
+              exit 1
+            fi
+          done
+
+      - name: Publish
+        run: dotnet nuget push "packages/*.nupkg" --api-key "${{ secrets.NUGET_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate

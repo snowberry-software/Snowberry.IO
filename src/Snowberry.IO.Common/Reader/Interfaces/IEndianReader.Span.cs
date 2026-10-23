@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Snowberry.IO.Common.Reader.Interfaces;
 
@@ -17,6 +17,8 @@ public partial interface IEndianReader
     /// <summary>
     /// Reads bytes from the current stream and advances the position within the stream until the <paramref name="buffer" /> is filled.
     /// </summary>
+    /// <remarks>When the end of the stream is reached, the bytes that were available are consumed.</remarks>
     /// <param name="buffer">A region of memory. When this method returns, the contents of this region are replaced by the bytes read from the current stream.</param>
+    /// <exception cref="System.IO.EndOfStreamException">Thrown when the end of the stream is reached before <paramref name="buffer"/> could be filled.</exception>
     void ReadExactly(Span<byte> buffer);
 }

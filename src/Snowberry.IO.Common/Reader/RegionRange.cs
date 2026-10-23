@@ -8,35 +8,73 @@ namespace Snowberry.IO.Common.Reader;
 /// </summary>
 public struct RegionRange : IEquatable<RegionRange>
 {
-    public long StartPosition;
-    public long Size;
-
-    /// <summary>
-    /// Uses the <see cref="Range"/> to create a new <see cref="RegionRange"/>.
-    /// </summary>
-    /// <remarks>
-    /// The <see cref="Range.Start"/> is considered as <see cref="RegionRange.StartPosition"/>.
-    /// <para/>
-    /// The <see cref="Range.End"/> is considered as <see cref="RegionRange.Size"/>.
-    /// </remarks>
-    /// <param name="range">The given range.</param>
-    public static implicit operator RegionRange(Range range)
-    {
-        return new()
-        {
-            StartPosition = range.Start.Value,
-            Size = range.End.Value
-        };
-    }
-
     /// <summary>
     /// Creates a new <see cref="RegionRange"/> based on the given <paramref name="range"/>.
     /// </summary>
     /// <param name="range">The range.</param>
     /// <returns>The newly created <see cref="RegionRange"/>.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="range"/> uses an <see cref="Index"/> that is relative to the end (for example <c>^1</c>),
+    /// or when the resulting end of the range is before its start.
+    /// </exception>
     public static RegionRange ToRegionRange(Range range)
     {
-        return range;
+        return (RegionRange)range;
+    }
+
+    /// <summary>
+    /// Compares two <see cref="RegionRange"/> instances for equality.
+    /// </summary>
+    /// <param name="left">The left <see cref="RegionRange"/> instance.</param>
+    /// <param name="right">The right <see cref="RegionRange"/> instance.</param>
+    /// <returns><see langword="true"/> if the instances are equal; otherwise, <see langword="false"/>.</returns>
+    public static bool operator ==(RegionRange left, RegionRange right)
+    {
+        return left.Equals(right);
+    }
+
+    /// <summary>
+    /// Converts a <see cref="Range"/> whose indexes are both relative to the start into a <see cref="RegionRange"/>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Range.Start"/> becomes <see cref="StartPosition"/>, and <see cref="Size"/> is <see cref="Range.End"/> minus <see cref="Range.Start"/>.
+    /// To use indexes relative to the end, call <see cref="IEndianReader.EnableRegionView(Range)"/> instead.
+    /// </remarks>
+    /// <param name="range">The given range.</param>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="range"/> uses an <see cref="Index"/> that is relative to the end (for example <c>^1</c>),
+    /// or when the resulting end of the range is before its start.
+    /// </exception>
+    public static explicit operator RegionRange(Range range)
+    {
+        if (range.Start.IsFromEnd)
+            throw new ArgumentException("The start of the range cannot be relative to the end.", nameof(range));
+
+        if (range.End.IsFromEnd)
+            throw new ArgumentException("The end of the range cannot be relative to the end.", nameof(range));
+
+        long start = range.Start.Value;
+        long end = range.End.Value;
+
+        if (end < start)
+            throw new ArgumentException("The end of the range cannot be before its start.", nameof(range));
+
+        return new()
+        {
+            StartPosition = start,
+            Size = end - start
+        };
+    }
+
+    /// <summary>
+    /// Compares two <see cref="RegionRange"/> instances for inequality.
+    /// </summary>
+    /// <param name="left">The left <see cref="RegionRange"/> instance.</param>
+    /// <param name="right">The right <see cref="RegionRange"/> instance.</param>
+    /// <returns><see langword="true"/> if the instances are not equal; otherwise, <see langword="false"/>.</returns>
+    public static bool operator !=(RegionRange left, RegionRange right)
+    {
+        return !(left == right);
     }
 
     /// <inheritdoc/>
@@ -46,16 +84,6 @@ public struct RegionRange : IEquatable<RegionRange>
             return false;
 
         return Equals(other);
-    }
-
-    public static bool operator ==(RegionRange left, RegionRange right)
-    {
-        return left.Equals(right);
-    }
-
-    public static bool operator !=(RegionRange left, RegionRange right)
-    {
-        return !(left == right);
     }
 
     /// <inheritdoc/>
@@ -73,4 +101,14 @@ public struct RegionRange : IEquatable<RegionRange>
         return 0x327482 ^ StartPosition.GetHashCode() ^ Size.GetHashCode();
 #endif
     }
+
+    /// <summary>
+    /// Gets or sets the size, in bytes, of the region.
+    /// </summary>
+    public long Size { readonly get; set; }
+
+    /// <summary>
+    /// Gets or sets the zero-based starting position of the region, relative to the underlying reader.
+    /// </summary>
+    public long StartPosition { readonly get; set; }
 }

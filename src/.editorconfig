@@ -12,7 +12,7 @@ indent_style = space
 tab_width = 4
 
 # New line preferences
-end_of_line = crlf
+end_of_line = lf
 insert_final_newline = false
 
 #### .NET Coding Conventions ####
@@ -189,9 +189,106 @@ csharp_space_between_square_brackets = false
 csharp_preserve_single_line_blocks = true
 csharp_preserve_single_line_statements = true
 
+#### dotnet format / Visual Studio Code Cleanup profile ####
+
+# Enabled Code Cleanup fixers are warnings so plain `dotnet format` (whose
+# default minimum severity is warning) can apply their code fixes.
+
+# Format document and sort imports/usings
+# IDE0055 covers all .NET/C# formatting options, including using sorting/grouping.
+dotnet_diagnostic.IDE0055.severity = warning
+
+# Remove unnecessary imports/usings
+dotnet_diagnostic.IDE0005.severity = warning
+
+# Apply file header preferences (no change is produced while file_header_template = unset)
+dotnet_diagnostic.IDE0073.severity = warning
+
+# Add/remove this. qualification according to the configured preferences
+dotnet_diagnostic.IDE0003.severity = warning
+dotnet_diagnostic.IDE0009.severity = warning
+
+# Accessibility and modifier preferences
+dotnet_diagnostic.IDE0040.severity = warning
+dotnet_diagnostic.IDE0036.severity = warning
+dotnet_diagnostic.IDE0044.severity = warning
+
+# Expression and initialization preferences
+dotnet_diagnostic.IDE0004.severity = warning
+dotnet_diagnostic.IDE0017.severity = warning
+dotnet_diagnostic.IDE0028.severity = warning
+dotnet_diagnostic.IDE0047.severity = warning
+dotnet_diagnostic.IDE0048.severity = warning
+dotnet_diagnostic.IDE0049.severity = warning
+dotnet_diagnostic.IDE0075.severity = warning
+dotnet_diagnostic.IDE0071.severity = warning
+dotnet_diagnostic.IDE0054.severity = warning
+dotnet_diagnostic.IDE0074.severity = warning
+dotnet_diagnostic.IDE0029.severity = warning
+dotnet_diagnostic.IDE0030.severity = warning
+dotnet_diagnostic.IDE0270.severity = warning
+dotnet_diagnostic.IDE0033.severity = warning
+dotnet_diagnostic.IDE0037.severity = warning
+dotnet_diagnostic.IDE0041.severity = warning
+dotnet_diagnostic.IDE0031.severity = warning
+
+# Using directive placement and suppression cleanup
+dotnet_diagnostic.IDE0065.severity = warning
+dotnet_diagnostic.IDE0079.severity = warning
+
+# var preferences
+dotnet_diagnostic.IDE0007.severity = warning
+dotnet_diagnostic.IDE0008.severity = warning
+
+# Expression-bodied member preferences
+dotnet_diagnostic.IDE0021.severity = warning
+dotnet_diagnostic.IDE0022.severity = warning
+dotnet_diagnostic.IDE0023.severity = warning
+dotnet_diagnostic.IDE0024.severity = warning
+dotnet_diagnostic.IDE0025.severity = warning
+dotnet_diagnostic.IDE0026.severity = warning
+dotnet_diagnostic.IDE0027.severity = warning
+dotnet_diagnostic.IDE0053.severity = warning
+dotnet_diagnostic.IDE0061.severity = warning
+
+# Remaining enabled C# cleanup preferences
+dotnet_diagnostic.IDE0018.severity = warning
+dotnet_diagnostic.IDE1005.severity = warning
+dotnet_diagnostic.IDE0062.severity = warning
+dotnet_diagnostic.IDE0042.severity = warning
+dotnet_diagnostic.IDE0034.severity = warning
+dotnet_diagnostic.IDE0090.severity = warning
+dotnet_diagnostic.IDE0057.severity = warning
+dotnet_diagnostic.IDE0039.severity = warning
+dotnet_diagnostic.IDE0063.severity = warning
+dotnet_diagnostic.IDE0016.severity = warning
+
 #### Naming styles ####
 
+# Naming diagnostics
+dotnet_diagnostic.IDE1006.severity = error
+
 # Naming rules
+
+dotnet_naming_rule.private_protected_constants_should_start_with_c.severity = error
+dotnet_naming_rule.private_protected_constants_should_start_with_c.symbols = private_protected_constant_fields
+dotnet_naming_rule.private_protected_constants_should_start_with_c.style = c_prefix_pascal_case
+
+dotnet_naming_rule.constants_should_start_with_c.severity = error
+dotnet_naming_rule.constants_should_start_with_c.symbols = constant_fields
+dotnet_naming_rule.constants_should_start_with_c.style = c_prefix_pascal_case
+
+dotnet_naming_rule.private_protected_static_fields_should_start_with_s.severity = error
+dotnet_naming_rule.private_protected_static_fields_should_start_with_s.symbols = private_protected_static_fields
+dotnet_naming_rule.private_protected_static_fields_should_start_with_s.style = s_prefix_pascal_case
+
+dotnet_naming_rule.static_fields_should_start_with_s.severity = error
+dotnet_naming_rule.static_fields_should_start_with_s.symbols = static_fields
+dotnet_naming_rule.static_fields_should_start_with_s.style = s_prefix_pascal_case
+
+dotnet_naming_rule.private_and_protected_fields_should_start_with_underscore.severity = error
+dotnet_naming_rule.private_and_protected_fields_should_start_with_underscore.symbols = private_and_protected_fields
+dotnet_naming_rule.private_and_protected_fields_should_start_with_underscore.style = underscore_prefix_camel_case
 
 dotnet_naming_rule.interface_should_be_begins_with_i.severity = suggestion
 dotnet_naming_rule.interface_should_be_begins_with_i.symbols = interface
@@ -207,6 +304,26 @@ dotnet_naming_rule.non_field_members_should_be_pascal_case.style = pascal_case
 
 # Symbol specifications
 
+dotnet_naming_symbols.private_protected_constant_fields.applicable_kinds = field
+dotnet_naming_symbols.private_protected_constant_fields.applicable_accessibilities = private, protected, protected_internal, private_protected
+dotnet_naming_symbols.private_protected_constant_fields.required_modifiers = const
+
+dotnet_naming_symbols.constant_fields.applicable_kinds = field
+dotnet_naming_symbols.constant_fields.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.constant_fields.required_modifiers = const
+
+dotnet_naming_symbols.private_protected_static_fields.applicable_kinds = field
+dotnet_naming_symbols.private_protected_static_fields.applicable_accessibilities = private, protected, protected_internal, private_protected
+dotnet_naming_symbols.private_protected_static_fields.required_modifiers = static
+
+dotnet_naming_symbols.static_fields.applicable_kinds = field
+dotnet_naming_symbols.static_fields.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.static_fields.required_modifiers = static
+
+dotnet_naming_symbols.private_and_protected_fields.applicable_kinds = field
+dotnet_naming_symbols.private_and_protected_fields.applicable_accessibilities = private, protected, protected_internal, private_protected
+dotnet_naming_symbols.private_and_protected_fields.required_modifiers = 
+
 dotnet_naming_symbols.interface.applicable_kinds = interface
 dotnet_naming_symbols.interface.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
 dotnet_naming_symbols.interface.required_modifiers = 
@@ -221,6 +338,21 @@ dotnet_naming_symbols.non_field_members.required_modifiers =
 
 # Naming styles
 
+dotnet_naming_style.c_prefix_pascal_case.required_prefix = c_
+dotnet_naming_style.c_prefix_pascal_case.required_suffix = 
+dotnet_naming_style.c_prefix_pascal_case.word_separator = 
+dotnet_naming_style.c_prefix_pascal_case.capitalization = pascal_case
+
+dotnet_naming_style.s_prefix_pascal_case.required_prefix = s_
+dotnet_naming_style.s_prefix_pascal_case.required_suffix = 
+dotnet_naming_style.s_prefix_pascal_case.word_separator = 
+dotnet_naming_style.s_prefix_pascal_case.capitalization = pascal_case
+
+dotnet_naming_style.underscore_prefix_camel_case.required_prefix = _
+dotnet_naming_style.underscore_prefix_camel_case.required_suffix = 
+dotnet_naming_style.underscore_prefix_camel_case.word_separator = 
+dotnet_naming_style.underscore_prefix_camel_case.capitalization = camel_case
+
 dotnet_naming_style.pascal_case.required_prefix = 
 dotnet_naming_style.pascal_case.required_suffix = 
 dotnet_naming_style.pascal_case.word_separator = 
@@ -230,3 +362,32 @@ dotnet_naming_style.begins_with_i.required_prefix = I
 dotnet_naming_style.begins_with_i.required_suffix = 
 dotnet_naming_style.begins_with_i.word_separator = 
 dotnet_naming_style.begins_with_i.capitalization = pascal_case
+
+# IDE
+# Simplify name
+dotnet_diagnostic.IDE0001.severity = warning
+# Simplify member access
+dotnet_diagnostic.IDE0002.severity = warning
+
+# Compiler XML documentation validation
+dotnet_diagnostic.CS1570.severity = error # Malformed XML documentation
+dotnet_diagnostic.CS1571.severity = error # Duplicate param tag
+dotnet_diagnostic.CS1572.severity = error # param tag does not match a parameter
+dotnet_diagnostic.CS1573.severity = error # parameter missing param tag
+dotnet_diagnostic.CS1574.severity = error # XML comment has cref attribute that could not be resolved
+dotnet_diagnostic.CS1584.severity = error # invalid cref syntax
+dotnet_diagnostic.CS1591.severity = error # missing XML docs on publicly visible API
+dotnet_diagnostic.CS1712.severity = error # type parameter missing typeparam tag
+
+# StyleCop documentation validation
+dotnet_diagnostic.SA1600.severity = error # element must be documented
+dotnet_diagnostic.SA1603.severity = error # documentation must contain valid XML
+dotnet_diagnostic.SA1611.severity = error # params must be documented
+dotnet_diagnostic.SA1612.severity = error # param docs must match signature
+dotnet_diagnostic.SA1615.severity = error # return value must be documented
+dotnet_diagnostic.SA1617.severity = error # void method must not have returns tag
+dotnet_diagnostic.SA1618.severity = error # generic type params must be documented
+dotnet_diagnostic.SA1620.severity = error # generic type param docs must match signature
+dotnet_diagnostic.SA1621.severity = error # property docs must match accessors
+dotnet_diagnostic.SA1622.severity = error # constructor summary should begin correctly
+dotnet_diagnostic.SA1623.severity = error # property summary should begin correctly
