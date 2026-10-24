@@ -498,4 +498,209 @@ public class BinaryEndianConverterTests
         BinaryEndianConverter.ToUInt16(data, EndianType.LITTLE).Should().Be(0xCDAB);
         BinaryEndianConverter.ToUInt16(data, EndianType.BIG).Should().Be(0xABCD);
     }
+
+    [Theory]
+    [InlineData(EndianType.LITTLE)]
+    [InlineData(EndianType.BIG)]
+    public void WriteFloatingPoint_EveryOffset_WritesTheIntegerBits(EndianType endian)
+    {
+        const float c_Single = -1234.5678f;
+        const double c_Double = 98765.4321e-3;
+
+        for (int offset = 0; offset <= 8; offset++)
+        {
+            byte[] actual = new byte[16];
+            byte[] expected = new byte[16];
+
+            BinaryEndianConverter.WriteFloat(actual, offset, c_Single, endian);
+            BinaryEndianConverter.WriteInt32(expected, offset, BitConverter.ToInt32(BitConverter.GetBytes(c_Single), 0), endian);
+            actual.Should().Equal(expected);
+            BinaryEndianConverter.ToFloat(actual, offset, endian).Should().Be(c_Single);
+
+            BinaryEndianConverter.WriteDouble(actual, offset, c_Double, endian);
+            BinaryEndianConverter.WriteInt64(expected, offset, BitConverter.DoubleToInt64Bits(c_Double), endian);
+            actual.Should().Equal(expected);
+            BinaryEndianConverter.ToDouble(actual, offset, endian).Should().Be(c_Double);
+        }
+
+        byte[] span = new byte[8];
+        BinaryEndianConverter.WriteFloat(span, c_Single, endian);
+        BinaryEndianConverter.ToFloat(span, endian).Should().Be(c_Single);
+        BinaryEndianConverter.WriteDouble(span, c_Double, endian);
+        BinaryEndianConverter.ToDouble(span, endian).Should().Be(c_Double);
+    }
+
+    [Fact]
+    public void WriteGuid_KnownValue_WritesLittleAndBigEndianLayouts()
+    {
+        var value = new Guid("00112233-4455-6677-8899-aabbccddeeff");
+        byte[] data = new byte[20];
+
+        BinaryEndianConverter.WriteGuid(data, 2, value, EndianType.LITTLE);
+        data.AsSpan(2, 16).ToArray().Should().Equal(value.ToByteArray());
+
+        BinaryEndianConverter.WriteGuid(data, 2, value, EndianType.BIG);
+        data.AsSpan(2, 16).ToArray().Should().Equal(
+            0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF);
+        data.AsSpan(0, 2).ToArray().Should().Equal(0, 0);
+        data.AsSpan(18).ToArray().Should().Equal(0, 0);
+
+        foreach (var endian in new[] { EndianType.LITTLE, EndianType.BIG })
+        {
+            for (int offset = 0; offset <= 4; offset++)
+            {
+                BinaryEndianConverter.WriteGuid(data, offset, value, endian);
+                BinaryEndianConverter.ToGuid(data, offset, endian).Should().Be(value);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(EndianType.LITTLE)]
+    [InlineData(EndianType.BIG)]
+    public void WriteIntegers_EveryOffset_MatchReferenceAndLeaveOtherBytes(EndianType endian)
+    {
+        byte[] values = RandomBytes(8, seed: 11);
+        ulong value = BinaryPrimitives.ReadUInt64LittleEndian(values);
+
+        for (int offset = 0; offset <= 16; offset++)
+        {
+            foreach (int size in new[] { 2, 4, 8 })
+            {
+                foreach (bool signed in new[] { true, false })
+                {
+                    byte[] data = new byte[24];
+                    data.AsSpan().Fill(0x5A);
+
+                    switch (size, signed)
+                    {
+                        case (2, true): BinaryEndianConverter.WriteInt16(data, offset, (short)value, endian); break;
+                        case (2, false): BinaryEndianConverter.WriteUInt16(data, offset, (ushort)value, endian); break;
+                        case (4, true): BinaryEndianConverter.WriteInt32(data, offset, (int)value, endian); break;
+                        case (4, false): BinaryEndianConverter.WriteUInt32(data, offset, (uint)value, endian); break;
+                        case (8, true): BinaryEndianConverter.WriteInt64(data, offset, (long)value, endian); break;
+                        default: BinaryEndianConverter.WriteUInt64(data, offset, value, endian); break;
+                    }
+
+                    ulong mask = size == 8 ? ulong.MaxValue : (1UL << (size * 8)) - 1;
+                    ReadReference(data, offset, size, endian).Should().Be(value & mask);
+                    data.AsSpan(0, offset).ToArray().Should().OnlyContain(b => b == 0x5A);
+                    data.AsSpan(offset + size).ToArray().Should().OnlyContain(b => b == 0x5A);
+                }
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void WriteIntegers_SpanOverloads_MatchBinaryPrimitives(int seed)
+    {
+        var random = new Random(seed);
+        byte[] bytes = new byte[8];
+        random.NextBytes(bytes);
+        long value = BitConverter.ToInt64(bytes, 0);
+        byte[] actual = new byte[8];
+        byte[] expected = new byte[8];
+
+        BinaryEndianConverter.WriteInt16(actual, (short)value, EndianType.BIG);
+        BinaryPrimitives.WriteInt16BigEndian(expected, (short)value);
+        actual.Should().Equal(expected);
+        BinaryEndianConverter.WriteUInt16(actual, (ushort)value, EndianType.LITTLE);
+        BinaryPrimitives.WriteUInt16LittleEndian(expected, (ushort)value);
+        actual.Should().Equal(expected);
+        BinaryEndianConverter.WriteInt32(actual, (int)value, EndianType.LITTLE);
+        BinaryPrimitives.WriteInt32LittleEndian(expected, (int)value);
+        actual.Should().Equal(expected);
+        BinaryEndianConverter.WriteUInt32(actual, (uint)value, EndianType.BIG);
+        BinaryPrimitives.WriteUInt32BigEndian(expected, (uint)value);
+        actual.Should().Equal(expected);
+        BinaryEndianConverter.WriteInt64(actual, value, EndianType.BIG);
+        BinaryPrimitives.WriteInt64BigEndian(expected, value);
+        actual.Should().Equal(expected);
+        BinaryEndianConverter.WriteUInt64(actual, (ulong)value, EndianType.LITTLE);
+        BinaryPrimitives.WriteUInt64LittleEndian(expected, (ulong)value);
+        actual.Should().Equal(expected);
+    }
+
+    [Theory]
+    [InlineData("Int16", "Int16", 2)]
+    [InlineData("UInt16", "UInt16", 2)]
+    [InlineData("Int32", "Int32", 4)]
+    [InlineData("UInt32", "UInt32", 4)]
+    [InlineData("Int64", "Int64", 8)]
+    [InlineData("UInt64", "UInt64", 8)]
+    [InlineData("Float", "Single", 4)]
+    [InlineData("Double", "Double", 8)]
+    [InlineData("Guid", "Guid", 16)]
+    public void WritePrimitive_OffsetLeavingTooFewBytes_ThrowsArgumentOutOfRangeExceptionNamingTheType(string type, string typeName, int size)
+    {
+        byte[] data = new byte[size + 4];
+        string expectedMessage = $"Not enough space to write a {typeName} value ({size} bytes required) at the given offset.";
+
+        foreach (int offset in new[] { 5, data.Length, data.Length + 1, -1, int.MinValue, int.MaxValue })
+        {
+            var exception = FluentActions.Invoking(() => WriteAtOffset(type, data, offset, EndianType.BIG)).Should().ThrowExactly<ArgumentOutOfRangeException>().Which;
+
+            exception.ParamName.Should().Be("offset");
+            exception.ActualValue.Should().Be(offset);
+            exception.Message.Should().StartWith(expectedMessage);
+        }
+
+        data.Should().OnlyContain(b => b == 0);
+        FluentActions.Invoking(() => WriteAtOffset(type, data, 4, EndianType.LITTLE)).Should().NotThrow();
+    }
+
+    [Theory]
+    [InlineData("Int16", 1)]
+    [InlineData("UInt16", 0)]
+    [InlineData("Int32", 3)]
+    [InlineData("UInt32", 1)]
+    [InlineData("Int64", 7)]
+    [InlineData("UInt64", 4)]
+    [InlineData("Float", 3)]
+    [InlineData("Double", 7)]
+    public void WritePrimitive_SpanShorterThanType_ThrowsLikeBinaryPrimitives(string type, int length)
+    {
+        byte[] data = new byte[length];
+        var expected = FluentActions.Invoking(() => BinaryPrimitives.WriteInt64LittleEndian(new byte[length], 0)).Should().Throw<ArgumentOutOfRangeException>().Which;
+
+        foreach (var endian in new[] { EndianType.LITTLE, EndianType.BIG })
+        {
+            var exception = FluentActions.Invoking(() => WriteToSpan(type, data, endian)).Should().ThrowExactly<ArgumentOutOfRangeException>().Which;
+            exception.ParamName.Should().Be(expected.ParamName);
+        }
+    }
+
+    private static void WriteAtOffset(string type, byte[] data, int offset, EndianType endian)
+    {
+        switch (type)
+        {
+            case "Int16": BinaryEndianConverter.WriteInt16(data, offset, 1, endian); break;
+            case "UInt16": BinaryEndianConverter.WriteUInt16(data, offset, 1, endian); break;
+            case "Int32": BinaryEndianConverter.WriteInt32(data, offset, 1, endian); break;
+            case "UInt32": BinaryEndianConverter.WriteUInt32(data, offset, 1, endian); break;
+            case "Int64": BinaryEndianConverter.WriteInt64(data, offset, 1, endian); break;
+            case "UInt64": BinaryEndianConverter.WriteUInt64(data, offset, 1, endian); break;
+            case "Float": BinaryEndianConverter.WriteFloat(data, offset, 1, endian); break;
+            case "Double": BinaryEndianConverter.WriteDouble(data, offset, 1, endian); break;
+            default: BinaryEndianConverter.WriteGuid(data, offset, Guid.NewGuid(), endian); break;
+        }
+    }
+
+    private static void WriteToSpan(string type, byte[] data, EndianType endian)
+    {
+        switch (type)
+        {
+            case "Int16": BinaryEndianConverter.WriteInt16(data, 1, endian); break;
+            case "UInt16": BinaryEndianConverter.WriteUInt16(data, 1, endian); break;
+            case "Int32": BinaryEndianConverter.WriteInt32(data, 1, endian); break;
+            case "UInt32": BinaryEndianConverter.WriteUInt32(data, 1, endian); break;
+            case "Int64": BinaryEndianConverter.WriteInt64(data, 1, endian); break;
+            case "UInt64": BinaryEndianConverter.WriteUInt64(data, 1, endian); break;
+            case "Float": BinaryEndianConverter.WriteFloat(data, 1, endian); break;
+            default: BinaryEndianConverter.WriteDouble(data, 1, endian); break;
+        }
+    }
 }

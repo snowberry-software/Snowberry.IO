@@ -12,4 +12,10 @@ namespace Snowberry.IO.SingleFile.Format.Layout;
 /// <param name="AssemblyAlignment">The assembly alignment of the existing bundle, or of its application host if it has no uncompressed assemblies.</param>
 /// <param name="Host">The parsed application host.</param>
 /// <param name="Manifest">The parsed manifest.</param>
-internal sealed record BundleLayout(long SignatureOffset, long ManifestOffset, long BundleOffset, int AssemblyAlignment, HostImage Host, Manifest Manifest);
+internal sealed record BundleLayout(long SignatureOffset, long ManifestOffset, long BundleOffset, int AssemblyAlignment, HostImage Host, Manifest Manifest)
+{
+    /// <summary>
+    /// Gets a value indicating whether the layout is that of a new bundle after an application host template, whose manifest offset is <c>0</c>.
+    /// </summary>
+    public bool IsTemplate => ManifestOffset == 0;
+}

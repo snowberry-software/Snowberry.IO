@@ -2,9 +2,7 @@
 using System.Runtime.CompilerServices;
 using Snowberry.IO.Common;
 using Snowberry.IO.Reader.Streams;
-#if NETSTANDARD2_0
-using System.Buffers.Binary;
-#elif NET5_0_OR_GREATER
+#if NET5_0_OR_GREATER
 using System.Runtime.InteropServices;
 #endif
 
@@ -12,17 +10,6 @@ namespace Snowberry.IO.Reader;
 
 public partial class BaseEndianReader
 {
-#if NETSTANDARD2_0
-    /// <summary>
-    /// The value of <see cref="BitConverter.IsLittleEndian"/>, which selects whether a decoded value has to be reversed.
-    /// </summary>
-    /// <remarks>
-    /// On .NET Framework the JIT treats this field as a constant, while <see cref="BitConverter.IsLittleEndian"/> read from this assembly
-    /// can cost a call to a static base helper for every decoded value.
-    /// </remarks>
-    private static readonly bool s_IsLittleEndianHost = BitConverter.IsLittleEndian;
-#endif
-
     /// <inheritdoc/>
     public Sha1 ReadSha1()
     {
@@ -209,9 +196,8 @@ public partial class BaseEndianReader
     /// Decodes a 16-bit integer in the <paramref name="endian"/> byte order from the start of <paramref name="b"/>.
     /// </summary>
     /// <remarks>
-    /// <paramref name="b"/> is the scratch buffer, which always holds the value, so on .NET Standard 2.0 the value is read with one
-    /// unaligned load after a single bounds check, and on .NET 5 and later from a span of constant length over the array data, without
-    /// null and length checks.
+    /// <paramref name="b"/> is the scratch buffer, which always holds the value, so on .NET 5 and later the value is read from a span of
+    /// constant length over the array data, without null and length checks.
     /// </remarks>
     /// <param name="b">The buffer that holds the bytes, at least 2 bytes long.</param>
     /// <param name="endian">The byte order of the data.</param>
@@ -221,14 +207,7 @@ public partial class BaseEndianReader
     {
         Debug.Assert(b.Length >= sizeof(short));
 
-#if NETSTANDARD2_0
-        short value = Unsafe.ReadUnaligned<short>(ref b[0]);
-
-        if (endian == EndianType.LITTLE)
-            return s_IsLittleEndianHost ? value : BinaryPrimitives.ReverseEndianness(value);
-
-        return s_IsLittleEndianHost ? BinaryPrimitives.ReverseEndianness(value) : value;
-#elif NET5_0_OR_GREATER
+#if NET5_0_OR_GREATER
         return BinaryEndianConverter.ToInt16(MemoryMarshal.CreateReadOnlySpan(ref MemoryMarshal.GetArrayDataReference(b), sizeof(short)), endian);
 #else
         return BinaryEndianConverter.ToInt16(b, endian);
@@ -252,9 +231,8 @@ public partial class BaseEndianReader
     /// Decodes a 32-bit integer in the <paramref name="endian"/> byte order from the start of <paramref name="b"/>.
     /// </summary>
     /// <remarks>
-    /// <paramref name="b"/> is the scratch buffer, which always holds the value, so on .NET Standard 2.0 the value is read with one
-    /// unaligned load after a single bounds check, and on .NET 5 and later from a span of constant length over the array data, without
-    /// null and length checks.
+    /// <paramref name="b"/> is the scratch buffer, which always holds the value, so on .NET 5 and later the value is read from a span of
+    /// constant length over the array data, without null and length checks.
     /// </remarks>
     /// <param name="b">The buffer that holds the bytes, at least 4 bytes long.</param>
     /// <param name="endian">The byte order of the data.</param>
@@ -264,14 +242,7 @@ public partial class BaseEndianReader
     {
         Debug.Assert(b.Length >= sizeof(int));
 
-#if NETSTANDARD2_0
-        int value = Unsafe.ReadUnaligned<int>(ref b[0]);
-
-        if (endian == EndianType.LITTLE)
-            return s_IsLittleEndianHost ? value : BinaryPrimitives.ReverseEndianness(value);
-
-        return s_IsLittleEndianHost ? BinaryPrimitives.ReverseEndianness(value) : value;
-#elif NET5_0_OR_GREATER
+#if NET5_0_OR_GREATER
         return BinaryEndianConverter.ToInt32(MemoryMarshal.CreateReadOnlySpan(ref MemoryMarshal.GetArrayDataReference(b), sizeof(int)), endian);
 #else
         return BinaryEndianConverter.ToInt32(b, endian);
@@ -295,9 +266,8 @@ public partial class BaseEndianReader
     /// Decodes a 64-bit integer in the <paramref name="endian"/> byte order from the start of <paramref name="b"/>.
     /// </summary>
     /// <remarks>
-    /// <paramref name="b"/> is the scratch buffer, which always holds the value, so on .NET Standard 2.0 the value is read with one
-    /// unaligned load after a single bounds check, and on .NET 5 and later from a span of constant length over the array data, without
-    /// null and length checks.
+    /// <paramref name="b"/> is the scratch buffer, which always holds the value, so on .NET 5 and later the value is read from a span of
+    /// constant length over the array data, without null and length checks.
     /// </remarks>
     /// <param name="b">The buffer that holds the bytes, at least 8 bytes long.</param>
     /// <param name="endian">The byte order of the data.</param>
@@ -307,14 +277,7 @@ public partial class BaseEndianReader
     {
         Debug.Assert(b.Length >= sizeof(long));
 
-#if NETSTANDARD2_0
-        long value = Unsafe.ReadUnaligned<long>(ref b[0]);
-
-        if (endian == EndianType.LITTLE)
-            return s_IsLittleEndianHost ? value : BinaryPrimitives.ReverseEndianness(value);
-
-        return s_IsLittleEndianHost ? BinaryPrimitives.ReverseEndianness(value) : value;
-#elif NET5_0_OR_GREATER
+#if NET5_0_OR_GREATER
         return BinaryEndianConverter.ToInt64(MemoryMarshal.CreateReadOnlySpan(ref MemoryMarshal.GetArrayDataReference(b), sizeof(long)), endian);
 #else
         return BinaryEndianConverter.ToInt64(b, endian);

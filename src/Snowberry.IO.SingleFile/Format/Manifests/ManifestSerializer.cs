@@ -1,6 +1,6 @@
 using System.Buffers;
-using System.Buffers.Binary;
 using System.Text;
+using Snowberry.IO.Common;
 using Snowberry.IO.Reader;
 using Snowberry.IO.SingleFile.Sources;
 
@@ -230,7 +230,7 @@ internal static class ManifestSerializer
 
         public void WriteInt64(long value)
         {
-            BinaryPrimitives.WriteInt64LittleEndian(_destination[_position..], value);
+            BinaryEndianConverter.WriteInt64(_destination, _position, value, EndianType.LITTLE);
             _position += sizeof(long);
         }
 
@@ -248,13 +248,13 @@ internal static class ManifestSerializer
 
         public void WriteUInt32(uint value)
         {
-            BinaryPrimitives.WriteUInt32LittleEndian(_destination[_position..], value);
+            BinaryEndianConverter.WriteUInt32(_destination, _position, value, EndianType.LITTLE);
             _position += sizeof(uint);
         }
 
         public void WriteUInt64(ulong value)
         {
-            BinaryPrimitives.WriteUInt64LittleEndian(_destination[_position..], value);
+            BinaryEndianConverter.WriteUInt64(_destination, _position, value, EndianType.LITTLE);
             _position += sizeof(ulong);
         }
 

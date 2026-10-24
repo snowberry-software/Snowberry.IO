@@ -92,6 +92,16 @@ public class BundlePathTests
     }
 
     [Theory]
+    [InlineData("NUL")]
+    [InlineData("sub/nul")]
+    public void TryGetSafeOutputPath_DeviceName_ReturnsFalseOnWindows(string relativePath)
+    {
+        Assert.SkipUnless(s_IsWindows, "Windows only.");
+
+        BundlePath.TryGetSafeOutputPath(NewTempDirectory(), relativePath, out _).Should().BeFalse();
+    }
+
+    [Theory]
     [InlineData("nul.txt")]
     [InlineData("Con")]
     [InlineData("com1.dll")]
@@ -99,11 +109,16 @@ public class BundlePathTests
     [InlineData("sub/aux.tar.gz")]
     [InlineData("PRN .txt")]
     [InlineData("lpt0")]
-    public void TryGetSafeOutputPath_ReservedDeviceName_ReturnsFalseOnWindows(string relativePath)
+    [InlineData("CONOUT$")]
+    public void TryGetSafeOutputPath_NameWindowsMayMapToDevice_ReturnsFalseExactlyWhenWindowsDoes(string relativePath)
     {
         Assert.SkipUnless(s_IsWindows, "Windows only.");
 
-        BundlePath.TryGetSafeOutputPath(NewTempDirectory(), relativePath, out _).Should().BeFalse();
+        // Which names are devices depends on the Windows version; the path is rejected when this one resolves it to a device.
+        string root = NewTempDirectory();
+        bool isDevice = Path.GetFullPath(Path.Combine(root, relativePath)).StartsWith(@"\\.\", StringComparison.Ordinal);
+
+        BundlePath.TryGetSafeOutputPath(root, relativePath, out _).Should().Be(!isDevice);
     }
 
     [Fact]

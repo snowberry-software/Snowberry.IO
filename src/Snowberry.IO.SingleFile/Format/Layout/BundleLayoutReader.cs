@@ -1,5 +1,5 @@
 using System.Buffers;
-using System.Buffers.Binary;
+using Snowberry.IO.Common;
 using Snowberry.IO.SingleFile.Format.Hosts;
 using Snowberry.IO.SingleFile.Format.Manifests;
 using Snowberry.IO.SingleFile.Sources;
@@ -27,17 +27,8 @@ internal static class BundleLayoutReader
     /// <exception cref="InvalidDataException">The source is not a valid single-file bundle.</exception>
     public static async ValueTask<BundleLayout> ReadAsync(bool useAsync, BundleSource source, CancellationToken cancellationToken)
     {
-        var host = await ReadHostAsync(useAsync, source, cancellationToken).ConfigureAwait(false);
-        var (signatureOffset, storedManifestOffset) = await FindSignatureAsync(useAsync, source, host.WritableRanges, cancellationToken).ConfigureAwait(false);
-
-        if (signatureOffset < 0)
-            throw new InvalidDataException("The file is not a single-file bundle: the bundle signature was not found.");
-
-        if (signatureOffset < BundleFormat.c_ManifestOffsetLength)
-            throw new InvalidDataException("The bundle signature is located at an invalid offset.");
-
-        long manifestOffset = storedManifestOffset
-            ?? await ReadManifestOffsetAsync(useAsync, source, signatureOffset - BundleFormat.c_ManifestOffsetLength, cancellationToken).ConfigureAwait(false);
+        var (host, signatureOffset, manifestOffset) = await ReadMarkerAsync(
+            useAsync, source, "The file is not a single-file bundle: the bundle signature was not found.", cancellationToken).ConfigureAwait(false);
 
         if (manifestOffset == 0)
             throw new InvalidDataException("The file is an application host without a bundle.");
@@ -48,9 +39,6 @@ internal static class BundleLayoutReader
             throw new InvalidDataException($"The bundle manifest offset {manifestOffset} is outside of the file.");
 
         var manifest = await ManifestSerializer.ReadAsync(useAsync, source, manifestOffset, cancellationToken).ConfigureAwait(false);
-
-        if (host.Kind == HostKind.UniversalMachO)
-            throw new InvalidDataException("Universal (fat) macOS executables are not supported.");
 
         // An image end beyond the manifest means the host headers could not be interpreted; ignore it then.
         long hostEnd = host.ImageEnd <= manifestOffset ? Math.Max(host.ImageEnd, dataStart) : dataStart;
@@ -75,6 +63,51 @@ internal static class BundleLayoutReader
         EnsureNoOverlap(manifest.Entries);
 
         return new BundleLayout(signatureOffset, manifestOffset, bundleOffset, InferAssemblyAlignment(manifest, host), host, manifest);
+    }
+
+    /// <summary>
+    /// Reads the layout of an application host that does not contain a bundle yet, as the .NET SDK bundler expects it: the bundle signature is
+    /// present and the manifest offset before it is <c>0</c>.
+    /// </summary>
+    /// <remarks>
+    /// The bundle starts at the end of the source, where the .NET SDK starts it, or at the code signature of a signed host, which saving then
+    /// removes like it does for an opened bundle: the Authenticode certificate table of a PE host, or the code signature of a macOS host.
+    /// </remarks>
+    /// <param name="useAsync"><see langword="true"/> to use asynchronous I/O; <see langword="false"/> to complete synchronously.</param>
+    /// <param name="source">The source to read the application host from.</param>
+    /// <param name="manifest">The manifest of the new bundle, without entries.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The layout of an empty bundle after the application host.</returns>
+    /// <exception cref="InvalidDataException">
+    /// The source is not an application host without a bundle, or the host is not supported: a universal macOS host, or a macOS host whose load
+    /// commands do not have the layout the .NET SDK requires.
+    /// </exception>
+    public static async ValueTask<BundleLayout> ReadHostTemplateAsync(bool useAsync, BundleSource source, Manifest manifest, CancellationToken cancellationToken)
+    {
+        var (host, signatureOffset, manifestOffset) = await ReadMarkerAsync(
+            useAsync, source, "The file is not an application host for a single-file bundle: the bundle signature was not found.", cancellationToken).ConfigureAwait(false);
+
+        if (manifestOffset != 0)
+            throw new InvalidDataException("The application host already contains a bundle.");
+
+        long hostEnd = Math.Max(signatureOffset + BundleFormat.c_SignatureLength, host.ImageEnd);
+        long bundleOffset;
+
+        if (host.Kind == HostKind.MachO)
+        {
+            var machO = host.MachO ?? throw new InvalidDataException("The load commands of the macOS application host do not have the layout the .NET SDK requires.");
+            bundleOffset = machO.CodeSignatureCommandOffset >= 0 ? machO.UnsignedEnd : source.Length;
+
+            if (bundleOffset < hostEnd || bundleOffset > source.Length)
+                throw new InvalidDataException("The code signature of the macOS application host is located at an invalid offset.");
+        }
+        else
+        {
+            // A certificate table inside the image is invalid; the bundle then follows the whole host.
+            bundleOffset = host.SecurityOffset >= hostEnd ? Math.Min(host.SecurityOffset, source.Length) : source.Length;
+        }
+
+        return new BundleLayout(signatureOffset, 0, bundleOffset, host.AssemblyAlignment, host, manifest);
     }
 
     /// <summary>
@@ -228,7 +261,41 @@ internal static class BundleLayoutReader
     {
         byte[] bytes = new byte[BundleFormat.c_ManifestOffsetLength];
         await source.ReadExactlyAsync(useAsync, offset, bytes, cancellationToken).ConfigureAwait(false);
-        return BinaryPrimitives.ReadInt64LittleEndian(bytes);
+        return BinaryEndianConverter.ToInt64(bytes, EndianType.LITTLE);
+    }
+
+    /// <summary>
+    /// Reads the application host and the bundle marker in it: the bundle signature and the manifest offset before it.
+    /// </summary>
+    /// <param name="useAsync"><see langword="true"/> to use asynchronous I/O; <see langword="false"/> to complete synchronously.</param>
+    /// <param name="source">The source to read.</param>
+    /// <param name="notFoundMessage">The message of the exception thrown when the signature is not found.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The parsed host, the offset of the signature and the stored manifest offset, which is <c>0</c> for a host without a bundle.</returns>
+    /// <exception cref="InvalidDataException">The host is a universal macOS executable, or the signature is missing or at an invalid offset.</exception>
+    private static async ValueTask<(HostImage Host, long SignatureOffset, long ManifestOffset)> ReadMarkerAsync(
+        bool useAsync,
+        BundleSource source,
+        string notFoundMessage,
+        CancellationToken cancellationToken)
+    {
+        var host = await ReadHostAsync(useAsync, source, cancellationToken).ConfigureAwait(false);
+
+        if (host.Kind == HostKind.UniversalMachO)
+            throw new InvalidDataException("Universal (fat) macOS executables are not supported.");
+
+        var (signatureOffset, storedManifestOffset) = await FindSignatureAsync(useAsync, source, host.WritableRanges, cancellationToken).ConfigureAwait(false);
+
+        if (signatureOffset < 0)
+            throw new InvalidDataException(notFoundMessage);
+
+        if (signatureOffset < BundleFormat.c_ManifestOffsetLength)
+            throw new InvalidDataException("The bundle signature is located at an invalid offset.");
+
+        long manifestOffset = storedManifestOffset
+            ?? await ReadManifestOffsetAsync(useAsync, source, signatureOffset - BundleFormat.c_ManifestOffsetLength, cancellationToken).ConfigureAwait(false);
+
+        return (host, signatureOffset, manifestOffset);
     }
 
     /// <summary>
@@ -260,7 +327,7 @@ internal static class BundleLayoutReader
             if (index >= 0)
             {
                 long? manifestOffset = index >= BundleFormat.c_ManifestOffsetLength
-                    ? BinaryPrimitives.ReadInt64LittleEndian(buffer.AsSpan(index - BundleFormat.c_ManifestOffsetLength))
+                    ? BinaryEndianConverter.ToInt64(buffer, index - BundleFormat.c_ManifestOffsetLength, EndianType.LITTLE)
                     : null;
 
                 return (position - carried + index, manifestOffset);

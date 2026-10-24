@@ -14,6 +14,7 @@ public sealed record BundleWriteOptions
     private readonly BundleCompression _compression = BundleCompression.Preserve;
     private readonly CompressionLevel _compressionLevel = CompressionLevel.SmallestSize;
     private readonly double _compressionThreshold = 0.75;
+    private readonly string? _macOSCodeSignIdentifier;
     private readonly long _maxCompressionMemory = 64L * 1024 * 1024;
     private readonly int _maxDegreeOfParallelism = -1;
 
@@ -97,6 +98,40 @@ public sealed record BundleWriteOptions
     /// Gets the default options.
     /// </summary>
     public static BundleWriteOptions Default { get; } = new();
+
+    /// <summary>
+    /// Gets a value indicating whether a macOS executable gets an ad-hoc code signature when it is saved, as the .NET SDK signs
+    /// it by default. Defaults to <see langword="true"/>.
+    /// </summary>
+    /// <remarks>
+    /// Saving a macOS executable always removes its current code signature, which the changed bundle invalidates, and extends its
+    /// <c>__LINKEDIT</c> segment over the bundle. When this is <see langword="true"/>, a new ad-hoc signature of SHA-256 page hashes is
+    /// appended, which Apple Silicon Macs require to run the executable; when <see langword="false"/>, the executable is left unsigned, for
+    /// example to sign it with <c>codesign</c> and a certificate afterwards.
+    /// </remarks>
+    public bool MacOSCodeSign { get; init; } = true;
+
+    /// <summary>
+    /// Gets or initializes the identifier of the ad-hoc code signature of a macOS executable.
+    /// </summary>
+    /// <remarks>
+    /// When <see langword="null"/> (the default), saving to a file uses the file name, as the .NET SDK does, and saving an opened bundle to a
+    /// stream keeps the identifier of the executable's current signature. Saving to a stream throws <see cref="InvalidOperationException"/>
+    /// when the executable is not signed or the bundle was created, because the signature of a template names the template, not the
+    /// application.
+    /// </remarks>
+    /// <exception cref="ArgumentException">The value is empty or contains a null character.</exception>
+    public string? MacOSCodeSignIdentifier
+    {
+        get => _macOSCodeSignIdentifier;
+        init
+        {
+            if (value != null && (value.Length == 0 || value.Contains('\0')))
+                throw new ArgumentException("The code signing identifier must not be empty or contain null characters.", nameof(value));
+
+            _macOSCodeSignIdentifier = value;
+        }
+    }
 
     /// <summary>
     /// Gets or initializes the number of bytes of compressed data that may be held in memory while saving.

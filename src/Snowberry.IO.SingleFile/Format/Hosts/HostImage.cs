@@ -50,7 +50,7 @@ internal sealed record HostImage(HostKind Kind, int AssemblyAlignment, long Imag
             {
                 const uint c_CpuTypeArm64 = 0x0100000C;
                 int alignment = BinaryEndianConverter.ToUInt32(header, 4, EndianType.LITTLE) == c_CpuTypeArm64 ? 4096 : 64;
-                return new HostImage(HostKind.MachO, alignment, 0, -1, -1, 0) { WritableRanges = ReadMachOWritableSegments(header) };
+                return new HostImage(HostKind.MachO, alignment, 0, -1, -1, 0) { WritableRanges = ReadMachOWritableSegments(header), MachO = MachOImage.Parse(header) };
             }
 
             // FAT_MAGIC / FAT_MAGIC_64, stored big-endian.
@@ -241,6 +241,12 @@ internal sealed record HostImage(HostKind Kind, int AssemblyAlignment, long Imag
 
         return MergeRanges(ranges);
     }
+
+    /// <summary>
+    /// Gets the load commands of a single-architecture macOS host that saving updates, or <see langword="null"/> for other hosts and for a macOS
+    /// host whose load commands could not be read.
+    /// </summary>
+    public MachOImage? MachO { get; init; }
 
     /// <summary>
     /// Gets the file ranges of the host's writable, initialized data, ordered by offset: the sections or segments that the program writes to at

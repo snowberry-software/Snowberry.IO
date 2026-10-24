@@ -265,7 +265,7 @@ public class SingleFileBundleSaveTests
     }
 
     [Fact]
-    public void Save_MachOHost_ThrowsNotSupportedException()
+    public void Save_MachOHostWithoutLoadCommands_ThrowsNotSupportedException()
     {
         using var bundle = OpenBytes(SampleV6(TestHost.MachO));
 

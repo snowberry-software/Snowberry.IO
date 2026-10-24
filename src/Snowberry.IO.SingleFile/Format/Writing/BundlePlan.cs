@@ -141,7 +141,12 @@ internal sealed class BundlePlan(BundleSource source, BundleLayout layout, bool 
     /// <summary>
     /// Gets the length of the bundle that is written.
     /// </summary>
-    public long Length => ManifestOffset + ManifestLength;
+    public long Length => MachO?.End ?? (ManifestOffset + ManifestLength);
+
+    /// <summary>
+    /// Gets or sets how the load commands and the code signature of a macOS host are written, or <see langword="null"/> for other hosts.
+    /// </summary>
+    public MachOPlan? MachO { get; set; }
 
     /// <summary>
     /// Gets or sets the length of the manifest.

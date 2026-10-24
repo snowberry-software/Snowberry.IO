@@ -7,7 +7,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
-        <Description>Reads, extracts and modifies the bundles of single-file published .NET applications.</Description>
+        <Description>Reads, extracts, modifies and creates the bundles of single-file published .NET applications, including signed macOS executables.</Description>
         <PackageTags>single-file single-file-publish bundle apphost dotnet</PackageTags>
 
         <PackageReadmeFile>README.md</PackageReadmeFile>

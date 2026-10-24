@@ -97,85 +97,17 @@ public class EndianStreamWriter : BinaryWriter, IEndianWriter
     /// <inheritdoc/>
     public IEndianWriter Write(Guid value, EndianType endian = EndianType.LITTLE)
     {
-#if NET8_0_OR_GREATER
-        Span<byte> data = stackalloc byte[16];
-        value.TryWriteBytes(data, endian == EndianType.BIG, out _);
-        OutStream.Write(data);
-        return this;
-#elif NETSTANDARD2_0
-        WriteGuid(value, endian);
-        return this;
-#else
-        Span<byte> data = stackalloc byte[16];
-        value.TryWriteBytes(data);
-
-        if (endian == EndianType.BIG)
-            ReverseGuidByteOrder(data);
-
-        OutStream.Write(data);
-        return this;
-#endif
-    }
-
 #if NETSTANDARD2_0
-    /// <summary>
-    /// Writes <paramref name="value"/> through <see cref="Scratch"/> in one write, in the layout of <see cref="Guid.ToByteArray()"/> or,
-    /// for <see cref="EndianType.BIG"/>, with the first three fields in big-endian order.
-    /// </summary>
-    /// <param name="value">The value.</param>
-    /// <param name="endian">The <see langword="byte"/> order of the first three fields.</param>
-    private unsafe void WriteGuid(Guid value, EndianType endian)
-    {
-        // A Guid holds Data1 (int), Data2 and Data3 (short) followed by the 8 bytes of Data4. Reading the first three fields
-        // as integers and shifting their bytes out gives the same result on little-endian and big-endian hosts.
-        byte* guid = (byte*)&value;
-        int a = *(int*)guid;
-        short b = *(short*)(guid + 4);
-        short c = *(short*)(guid + 6);
         byte[] data = Scratch;
-
-        if (endian == EndianType.BIG)
-        {
-            data[0] = (byte)(a >> 24);
-            data[1] = (byte)(a >> 16);
-            data[2] = (byte)(a >> 8);
-            data[3] = (byte)a;
-            data[4] = (byte)(b >> 8);
-            data[5] = (byte)b;
-            data[6] = (byte)(c >> 8);
-            data[7] = (byte)c;
-        }
-        else
-        {
-            data[0] = (byte)a;
-            data[1] = (byte)(a >> 8);
-            data[2] = (byte)(a >> 16);
-            data[3] = (byte)(a >> 24);
-            data[4] = (byte)b;
-            data[5] = (byte)(b >> 8);
-            data[6] = (byte)c;
-            data[7] = (byte)(c >> 8);
-        }
-
-        for (int i = 8; i < 16; i++)
-            data[i] = guid[i];
-
+        BinaryEndianConverter.WriteGuid(data, 0, value, endian);
         OutStream.Write(data, 0, 16);
-    }
 #else
-    /// <summary>
-    /// Reorders the first 8 bytes of a <see cref="Guid"/>'s standard (little-endian) byte layout, produced by <see cref="Guid.ToByteArray()"/> or <c>Guid.TryWriteBytes(Span&lt;byte&gt;)</c>, into big-endian / RFC 4122 network byte order.
-    /// </summary>
-    /// <remarks>The last 8 bytes (<c>Data4</c>) are already order-invariant and are left untouched.</remarks>
-    /// <param name="data">The 16-byte buffer containing the <see cref="Guid"/>'s standard byte layout.</param>
-    private static void ReverseGuidByteOrder(Span<byte> data)
-    {
-        (data[0], data[3]) = (data[3], data[0]);
-        (data[1], data[2]) = (data[2], data[1]);
-        (data[4], data[5]) = (data[5], data[4]);
-        (data[6], data[7]) = (data[7], data[6]);
-    }
+        Span<byte> data = stackalloc byte[16];
+        BinaryEndianConverter.WriteGuid(data, 0, value, endian);
+        OutStream.Write(data);
 #endif
+        return this;
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

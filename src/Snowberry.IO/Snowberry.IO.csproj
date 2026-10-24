@@ -8,7 +8,7 @@
         <LangVersion>latest</LangVersion>
 
         <!-- Package -->
-        <Description>Binary reader and writer that supports different endian types.</Description>
+        <Description>An endian-aware binary reader and writer for .NET: reads and writes primitives, strings, Guid and SHA-1 values in little- or big-endian order, with region views, signature scanning and Windows process memory reading.</Description>
 
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>

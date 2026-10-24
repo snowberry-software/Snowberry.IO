@@ -22,7 +22,7 @@ dotnet add package Snowberry.IO.Common
 
 ## Quick Start
 
-1. Convert bytes in a chosen byte order.
+1. Read and write bytes in a chosen byte order.
 2. Align a position.
 3. Parse and format a SHA-1 hash.
 
@@ -34,6 +34,7 @@ byte[] data = new byte[] { 0x00, 0x00, 0x00, 0x2A, 0x2A, 0x00, 0x00, 0x00 };
 
 int big = BinaryEndianConverter.ToInt32(data, EndianType.BIG);           // 42, from the start of the span
 int little = BinaryEndianConverter.ToInt32(data, 4, EndianType.LITTLE);  // 42, from offset 4
+BinaryEndianConverter.WriteInt32(data, 0, 7, EndianType.LITTLE);         // data starts with 07 00 00 00
 
 long position = 13;
 long padding = BinaryUtils.CalculatePadding(position, 8); // 3
@@ -45,7 +46,7 @@ Console.WriteLine(hash); // DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
 
 ## Top Features at a Glance
 
-- **`BinaryEndianConverter`.** Bounds-checked conversion of a `ReadOnlySpan<byte>` to `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double` and `Guid` in either byte order. Every type has an overload that takes an offset; all but `Guid` also have one that reads from the start of the span.
+- **`BinaryEndianConverter`.** Bounds-checked conversion between bytes and `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double` and `Guid` in either byte order: `To…` reads from a `ReadOnlySpan<byte>` and `Write…` writes to a `Span<byte>`. Every type has an overload that takes an offset; all but `Guid` also have one that uses the start of the span.
 - **`Sha1`.** A 20-byte hash value with equality, uppercase hex formatting through `ToString()`, parsing from a 40-character hex string, `GetHashBuffer()` and allocation-free `TryWriteBytes`. It also builds from a 20-byte `byte[]` or span (`From` refills an existing value), and `s_Zero` is the all-zero hash.
 - **`IEndianReader` and `IEndianWriter`.** The contracts implemented by the Snowberry.IO readers and writers, so code can accept any reader or writer. See [Reader and Writer Contracts](#reader-and-writer-contracts).
 - **`Analyzer`.** A base class for observing or rewriting bytes right after a reader reads them.
@@ -53,16 +54,16 @@ Console.WriteLine(hash); // DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
 
 ## Core Types
 
-| Type                    | Namespace                                | Purpose                                                       |
-| ----------------------- | ---------------------------------------- | ------------------------------------------------------------- |
-| `EndianType`            | `Snowberry.IO.Common`                    | Byte order: `LITTLE` or `BIG`.                                |
-| `BinaryEndianConverter` | `Snowberry.IO.Common`                    | Converts spans to primitives and `Guid` in either byte order. |
-| `BinaryUtils`           | `Snowberry.IO.Common`                    | Alignment and padding helpers.                                |
-| `Sha1`                  | `Snowberry.IO.Common`                    | 20-byte SHA-1 hash value.                                     |
-| `RegionRange`           | `Snowberry.IO.Common.Reader`             | Start position and size of a reader region view.              |
-| `Analyzer`              | `Snowberry.IO.Common.Reader`             | Base class that sees, and may change, every read byte.        |
-| `IEndianReader`         | `Snowberry.IO.Common.Reader.Interfaces`  | The reader contract.                                          |
-| `IEndianWriter`         | `Snowberry.IO.Common.Writer.Interfaces`  | The writer contract.                                          |
+| Type                    | Namespace                               | Purpose                                                               |
+| ----------------------- | --------------------------------------- | --------------------------------------------------------------------- |
+| `EndianType`            | `Snowberry.IO.Common`                   | Byte order: `LITTLE` or `BIG`.                                        |
+| `BinaryEndianConverter` | `Snowberry.IO.Common`                   | Converts between spans and primitives or `Guid` in either byte order. |
+| `BinaryUtils`           | `Snowberry.IO.Common`                   | Alignment and padding helpers.                                        |
+| `Sha1`                  | `Snowberry.IO.Common`                   | 20-byte SHA-1 hash value.                                             |
+| `RegionRange`           | `Snowberry.IO.Common.Reader`            | Start position and size of a reader region view.                      |
+| `Analyzer`              | `Snowberry.IO.Common.Reader`            | Base class that sees, and may change, every read byte.                |
+| `IEndianReader`         | `Snowberry.IO.Common.Reader.Interfaces` | The reader contract.                                                  |
+| `IEndianWriter`         | `Snowberry.IO.Common.Writer.Interfaces` | The writer contract.                                                  |
 
 ## Reader and Writer Contracts
 
@@ -74,7 +75,7 @@ For worked examples of region views and a custom analyzer, see [Region Views](ht
 
 ## Pitfalls
 
-- **Converters throw on short input.** Every `BinaryEndianConverter` overload throws `ArgumentOutOfRangeException` when fewer bytes are available than the type needs, or when the offset is negative, instead of reading past the span.
+- **Converters throw on short input.** Every `BinaryEndianConverter` overload throws `ArgumentOutOfRangeException` when fewer bytes are available than the type needs, or when the offset is negative, instead of reading or writing past the span. A failed write leaves the span unchanged.
 - **Alignment must be a power of two.** `BinaryUtils` throws `ArgumentOutOfRangeException` for `0` or values such as `3`.
 - **`Range` converts to `RegionRange` only when both ends count from the start.** `(RegionRange)(20..80)` and `RegionRange.ToRegionRange(20..80)` work, but `^16..` and open ranges such as `20..` (whose end is `^0`) throw `ArgumentException`. Pass those to `IEndianReader.EnableRegionView(Range)`, which resolves them against the reader's length.
 - **`Sha1` components are not the SHA-1 state words.** Each component A to E is the little-endian reading of a 4-byte slice of the digest, not H0 to H4. Compare hashes with `==`, `ToString()` or the bytes from `TryWriteBytes`, not with hand-built components.
@@ -83,7 +84,7 @@ For worked examples of region views and a custom analyzer, see [Region Views](ht
 
 ## Related Packages
 
-| Package                                                                                                               | Purpose                                                                |
-| --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| [Snowberry.IO](https://github.com/snowberry-software/Snowberry.IO)                                                    | Stream and process-memory readers and the stream writer.               |
-| [Snowberry.IO.SingleFile](https://github.com/snowberry-software/Snowberry.IO/tree/master/src/Snowberry.IO.SingleFile) | Reads and modifies bundles of single-file published .NET applications. |
+| Package                                                                                                               | Purpose                                                                         |
+| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| [Snowberry.IO](https://github.com/snowberry-software/Snowberry.IO)                                                    | Stream and process-memory readers and the stream writer.                        |
+| [Snowberry.IO.SingleFile](https://github.com/snowberry-software/Snowberry.IO/tree/master/src/Snowberry.IO.SingleFile) | Reads, modifies and creates bundles of single-file published .NET applications. |
