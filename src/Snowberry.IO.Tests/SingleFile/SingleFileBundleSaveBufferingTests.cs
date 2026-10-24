@@ -220,6 +220,19 @@ public class SingleFileBundleSaveBufferingTests
             .Should().ThrowExactlyAsync<InvalidDataException>();
     }
 
+    [Fact]
+    public async Task SaveAsync_CorruptEntryFailsWhileCompressing_ThrowsInvalidDataExceptionNotTheCancellation()
+    {
+        // The replaced entry is compressed from a stream that only finishes when the failure of the corrupt entry cancels the other work,
+        // so the compression always fails with the cancellation while the hashing fails with the real error.
+        byte[] corrupt = PatchEntrySize((byte[])s_SkewedCompressed.Value.Clone(), "text7.txt", 1000);
+        using var bundle = OpenBytes(corrupt);
+        bundle.GetEntry("text2.txt").Replace(new CancellationWaitingStream(5000));
+
+        await FluentActions.Awaiting(() => bundle.SaveAsync(new MemoryStream(), new BundleWriteOptions { MaxDegreeOfParallelism = 4 }, TestContext.Current.CancellationToken))
+            .Should().ThrowExactlyAsync<InvalidDataException>();
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
