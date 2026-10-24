@@ -478,7 +478,9 @@ internal static class BundleWriter
         else
             Task.WaitAny(compressed.Task, background);
 
-        await plan.WaitAsync(useAsync, compressed.Task.IsCompleted ? compressed.Task : background).ConfigureAwait(false);
+        // A failure of any item cancels the others, so a compression that was still running fails with the cancellation. The background work
+        // reports the exception that stopped the pass first, so it is the one to rethrow whenever the compressions did not all succeed.
+        await plan.WaitAsync(useAsync, compressed.Task.IsCompletedSuccessfully ? compressed.Task : background).ConfigureAwait(false);
     }
 
     /// <summary>
