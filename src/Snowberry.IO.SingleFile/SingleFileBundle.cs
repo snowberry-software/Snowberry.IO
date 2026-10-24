@@ -5,6 +5,7 @@ using Snowberry.IO.SingleFile.Content;
 using Snowberry.IO.SingleFile.Format;
 using Snowberry.IO.SingleFile.Format.Hosts;
 using Snowberry.IO.SingleFile.Format.Layout;
+using Snowberry.IO.SingleFile.Format.Manifests;
 using Snowberry.IO.SingleFile.Format.Writing;
 using Snowberry.IO.SingleFile.Sources;
 using Snowberry.IO.SingleFile.Streams;
@@ -16,7 +17,8 @@ namespace Snowberry.IO.SingleFile;
 /// The bundle of a single-file published .NET application: the files embedded in the executable and the manifest that describes them.
 /// </summary>
 /// <remarks>
-/// <para>Opening a bundle reads the application host up to the bundle signature and the manifest; entry content is read on demand.
+/// <para>Opening a bundle reads the application host up to the bundle signature and the manifest; entry content is read on demand. A new bundle
+/// is created empty, after an application host or without one, and filled with entries before it is saved.
 /// Saving writes the destination in a single forward pass. Entries that are compressed while saving are compressed first and buffered until
 /// they are written: in memory up to <see cref="BundleWriteOptions.MaxCompressionMemory"/>, and in temporary files beyond it.</para>
 /// <para>Reading entries is thread-safe; reads of a bundle opened from a stream are serialized. Modifying entries and saving must not run
@@ -57,6 +59,148 @@ public sealed class SingleFileBundle : IDisposable, IAsyncDisposable
         }
 
         Entries = new ReadOnlyCollection<BundleEntry>(_entries);
+    }
+
+    /// <summary>
+    /// Creates an empty bundle without an application host, for working with the bundle format alone.
+    /// </summary>
+    /// <remarks>
+    /// <para>Saving writes only the 8-byte manifest offset and the bundle signature in place of an application host, followed by the entries and the
+    /// manifest. <see cref="Open(Stream, bool)"/> reads the result, but it is not an executable; use <see cref="Create(string, BundleHeader?)"/>
+    /// to bundle the entries with an application host.</para>
+    /// <para>Uncompressed assemblies are aligned to 4096 bytes, as for an unrecognized host; <see cref="BundleWriteOptions.AssemblyAlignment"/>
+    /// overrides it.</para>
+    /// </remarks>
+    /// <param name="header">
+    /// The header of the bundle, or <see langword="null"/> for format version 6.0, which .NET 6 and later use, without flags. Its
+    /// <see cref="BundleHeader.Id"/> is replaced by the identifier computed when saving.
+    /// </param>
+    /// <returns>The empty bundle.</returns>
+    /// <exception cref="ArgumentException"><paramref name="header"/> has an unsupported format version, or flags its format version does not have.</exception>
+    public static SingleFileBundle Create(BundleHeader? header = null)
+    {
+        header = ValidateHeader(header);
+
+        byte[] marker = new byte[BundleFormat.c_ManifestOffsetLength + BundleFormat.c_SignatureLength];
+        BundleFormat.Signature.CopyTo(marker.AsSpan(BundleFormat.c_ManifestOffsetLength));
+
+        return CreateCoreAsync(useAsync: false, new MemoryBundleSource(marker, nameof(SingleFileBundle)), header, CancellationToken.None).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Creates an empty bundle after the application host in a file, as the .NET SDK bundler does.
+    /// </summary>
+    /// <remarks>
+    /// <para>The host must contain the bundle signature with a manifest offset of <c>0</c>, like the <c>apphost</c> and <c>singlefilehost</c>
+    /// templates of the .NET runtime packs. It is used as is, so preparing it, for example writing the application name into an <c>apphost</c>, is
+    /// up to the caller. The entries are saved after the end of the host.</para>
+    /// <para>Saving removes the code signature of the host, which the bundle invalidates: the Authenticode signature of a Windows host, and the
+    /// code signature of a macOS host, which then gets a new ad-hoc signature unless <see cref="BundleWriteOptions.MacOSCodeSign"/> is
+    /// <see langword="false"/>.</para>
+    /// </remarks>
+    /// <param name="hostPath">The path of the application host.</param>
+    /// <param name="header">
+    /// The header of the bundle, or <see langword="null"/> for format version 6.0, which .NET 6 and later use, without flags. Its
+    /// <see cref="BundleHeader.Id"/> is replaced by the identifier computed when saving.
+    /// </param>
+    /// <returns>The empty bundle, which keeps the host file open for reading until it is disposed.</returns>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="hostPath"/> is <see langword="null"/> or empty, or <paramref name="header"/> has an unsupported format version, or flags its
+    /// format version does not have.
+    /// </exception>
+    /// <exception cref="FileNotFoundException">The file does not exist.</exception>
+    /// <exception cref="UnauthorizedAccessException">The caller does not have permission to read the file.</exception>
+    /// <exception cref="InvalidDataException">
+    /// The file is not an application host without a bundle, or the host is not supported: a universal (fat) macOS executable, or a macOS
+    /// executable whose load commands do not have the layout the .NET SDK requires.
+    /// </exception>
+    /// <exception cref="IOException">An I/O error occurred.</exception>
+    public static SingleFileBundle Create(string hostPath, BundleHeader? header = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(hostPath);
+        header = ValidateHeader(header);
+        return CreateCoreAsync(useAsync: false, FileBundleSource.Open(hostPath, useAsync: false), header, CancellationToken.None).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Creates an empty bundle after the application host in a stream, as the .NET SDK bundler does.
+    /// </summary>
+    /// <remarks>
+    /// <para>The host must contain the bundle signature with a manifest offset of <c>0</c>, like the <c>apphost</c> and <c>singlefilehost</c>
+    /// templates of the .NET runtime packs. It is used as is, so preparing it, for example writing the application name into an <c>apphost</c>, is
+    /// up to the caller. The entries are saved after the end of the host.</para>
+    /// <para>Saving removes the code signature of the host, which the bundle invalidates: the Authenticode signature of a Windows host, and the
+    /// code signature of a macOS host, which then gets a new ad-hoc signature unless <see cref="BundleWriteOptions.MacOSCodeSign"/> is
+    /// <see langword="false"/>.</para>
+    /// </remarks>
+    /// <param name="host">A readable, seekable stream that contains the application host.</param>
+    /// <param name="leaveOpen">
+    /// <see langword="true"/> to leave <paramref name="host"/> open when the bundle is disposed or the stream does not contain a valid host;
+    /// otherwise, <see langword="false"/>.
+    /// </param>
+    /// <param name="header">
+    /// The header of the bundle, or <see langword="null"/> for format version 6.0, which .NET 6 and later use, without flags. Its
+    /// <see cref="BundleHeader.Id"/> is replaced by the identifier computed when saving.
+    /// </param>
+    /// <returns>The empty bundle, which reads the host from <paramref name="host"/> until it is disposed.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="host"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="host"/> is not readable and seekable, or <paramref name="header"/> has an unsupported format version, or flags its format
+    /// version does not have.
+    /// </exception>
+    /// <exception cref="InvalidDataException">
+    /// The stream does not contain an application host without a bundle, or the host is not supported: a universal (fat) macOS executable, or a
+    /// macOS executable whose load commands do not have the layout the .NET SDK requires.
+    /// </exception>
+    /// <exception cref="IOException">An I/O error occurred.</exception>
+    public static SingleFileBundle Create(Stream host, bool leaveOpen = false, BundleHeader? header = null)
+    {
+        header = ValidateHeader(header);
+        return CreateCoreAsync(useAsync: false, CreateStreamSource(host, leaveOpen), header, CancellationToken.None).GetAwaiter().GetResult();
+    }
+
+    /// <inheritdoc cref="Create(string, BundleHeader?)"/>
+    /// <remarks>
+    /// <para>The host must contain the bundle signature with a manifest offset of <c>0</c>, like the <c>apphost</c> and <c>singlefilehost</c>
+    /// templates of the .NET runtime packs. It is used as is, so preparing it, for example writing the application name into an <c>apphost</c>, is
+    /// up to the caller. The entries are saved after the end of the host.</para>
+    /// <para>Saving removes the code signature of the host, which the bundle invalidates: the Authenticode signature of a Windows host, and the
+    /// code signature of a macOS host, which then gets a new ad-hoc signature unless <see cref="BundleWriteOptions.MacOSCodeSign"/> is
+    /// <see langword="false"/>.</para>
+    /// <para>The file is opened for asynchronous I/O. Argument and file-access errors are thrown directly, not through the returned task.</para>
+    /// </remarks>
+    /// <param name="hostPath">The path of the application host.</param>
+    /// <param name="header">
+    /// The header of the bundle, or <see langword="null"/> for format version 6.0, which .NET 6 and later use, without flags. Its
+    /// <see cref="BundleHeader.Id"/> is replaced by the identifier computed when saving.
+    /// </param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A task whose result is the empty bundle, which keeps the host file open for reading until it is disposed.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was canceled.</exception>
+    public static Task<SingleFileBundle> CreateAsync(string hostPath, BundleHeader? header = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(hostPath);
+        header = ValidateHeader(header);
+        return CreateCoreAsync(useAsync: true, FileBundleSource.Open(hostPath, useAsync: true), header, cancellationToken).AsTask();
+    }
+
+    /// <inheritdoc cref="Create(Stream, bool, BundleHeader?)"/>
+    /// <param name="host">A readable, seekable stream that contains the application host.</param>
+    /// <param name="leaveOpen">
+    /// <see langword="true"/> to leave <paramref name="host"/> open when the bundle is disposed or the stream does not contain a valid host;
+    /// otherwise, <see langword="false"/>.
+    /// </param>
+    /// <param name="header">
+    /// The header of the bundle, or <see langword="null"/> for format version 6.0, which .NET 6 and later use, without flags. Its
+    /// <see cref="BundleHeader.Id"/> is replaced by the identifier computed when saving.
+    /// </param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A task whose result is the empty bundle, which reads the host from <paramref name="host"/> until it is disposed.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was canceled.</exception>
+    public static Task<SingleFileBundle> CreateAsync(Stream host, bool leaveOpen = false, BundleHeader? header = null, CancellationToken cancellationToken = default)
+    {
+        header = ValidateHeader(header);
+        return CreateCoreAsync(useAsync: true, CreateStreamSource(host, leaveOpen), header, cancellationToken).AsTask();
     }
 
     /// <summary>
@@ -143,6 +287,20 @@ public sealed class SingleFileBundle : IDisposable, IAsyncDisposable
         }
     }
 
+    private static async ValueTask<SingleFileBundle> CreateCoreAsync(bool useAsync, BundleSource source, BundleHeader header, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var layout = await BundleLayoutReader.ReadHostTemplateAsync(useAsync, source, new Manifest(header, []), cancellationToken).ConfigureAwait(false);
+            return new SingleFileBundle(source, layout);
+        }
+        catch
+        {
+            source.Dispose();
+            throw;
+        }
+    }
+
     private static StreamBundleSource CreateStreamSource(Stream stream, bool leaveOpen)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -165,6 +323,20 @@ public sealed class SingleFileBundle : IDisposable, IAsyncDisposable
             source.Dispose();
             throw;
         }
+    }
+
+    private static BundleHeader ValidateHeader(BundleHeader? header)
+    {
+        header ??= new BundleHeader(6, 0, string.Empty, BundleFlags.None);
+
+        if (!BundleFormat.IsSupportedMajorVersion(header.MajorVersion))
+            throw new ArgumentException($"Bundle format version {header.MajorVersion} is not supported.", nameof(header));
+
+        if (header.MajorVersion == 1 && header.Flags != BundleFlags.None)
+            throw new ArgumentException("Bundle format version 1 does not have flags.", nameof(header));
+
+        // Saving always replaces the identifier; a null one is replaced here so that Header.Id is never null.
+        return header.Id == null ? header with { Id = string.Empty } : header;
     }
 
     /// <summary>
@@ -388,9 +560,11 @@ public sealed class SingleFileBundle : IDisposable, IAsyncDisposable
     /// </summary>
     /// <remarks>
     /// <para>The file is written to a temporary file next to <paramref name="path"/> and moved into place when complete. On Linux and macOS it gets
-    /// the permissions of the opened file, or <c>rwxr-xr-x</c> for a bundle opened from a stream.</para>
+    /// the permissions of the file the bundle was opened or created from, or <c>rwxr-xr-x</c> for a bundle opened or created from a stream or
+    /// created without an application host.</para>
     /// <para>Data that followed the manifest in the opened file, such as an Authenticode signature, is not written, and a reference to it in the
-    /// Windows application host is removed; sign the saved executable again if needed.</para>
+    /// Windows application host is removed; sign the saved executable again if needed. A macOS executable gets a new ad-hoc code signature
+    /// whose identifier is the file name of <paramref name="path"/>, as the .NET SDK signs it; see <see cref="BundleWriteOptions.MacOSCodeSign"/>.</para>
     /// </remarks>
     /// <param name="path">The path of the executable to create or overwrite. It must differ from the path the bundle was opened from.</param>
     /// <param name="options">The options, or <see langword="null"/> for <see cref="BundleWriteOptions.Default"/>.</param>
@@ -403,10 +577,14 @@ public sealed class SingleFileBundle : IDisposable, IAsyncDisposable
     /// <exception cref="ObjectDisposedException">The bundle is disposed.</exception>
     /// <exception cref="InvalidDataException">The stored data of an entry does not match its declared size.</exception>
     /// <exception cref="InvalidOperationException">
-    /// The bundle has no entries, or <see cref="BundleWriteOptions.Compression"/> is <see cref="BundleCompression.Compress"/>, the bundle format supports
-    /// compression and the application is framework-dependent.
+    /// The bundle has no entries, <see cref="BundleWriteOptions.Compression"/> is <see cref="BundleCompression.Compress"/>, the bundle format
+    /// supports compression and the application is framework-dependent, or the macOS executable cannot hold the bundle and its code signature:
+    /// they would end beyond 4 GiB, or the load commands have no room for a code signature command.
     /// </exception>
-    /// <exception cref="NotSupportedException">The application host is a macOS executable, which would have to be signed again.</exception>
+    /// <exception cref="NotSupportedException">
+    /// The application host is a macOS executable whose load commands do not have the layout the .NET SDK requires, or whose bundle does not
+    /// follow the start of its string table.
+    /// </exception>
     public void Save(string path, BundleWriteOptions? options = null)
     {
         SaveToFileCoreAsync(useAsync: false, path, options, CancellationToken.None).GetAwaiter().GetResult();
@@ -418,7 +596,9 @@ public sealed class SingleFileBundle : IDisposable, IAsyncDisposable
     /// <remarks>
     /// <para>The stream is written in a single forward pass, so it does not need to be seekable. It is left open.</para>
     /// <para>Data that followed the manifest in the opened file, such as an Authenticode signature, is not written, and a reference to it in the
-    /// Windows application host is removed; sign the saved executable again if needed.</para>
+    /// Windows application host is removed; sign the saved executable again if needed. A macOS executable gets a new ad-hoc code signature,
+    /// as the .NET SDK signs it, whose identifier is <see cref="BundleWriteOptions.MacOSCodeSignIdentifier"/> or, for an opened bundle, that
+    /// of its current signature; see <see cref="BundleWriteOptions.MacOSCodeSign"/>.</para>
     /// </remarks>
     /// <param name="destination">The writable stream to write the application to.</param>
     /// <param name="options">The options, or <see langword="null"/> for <see cref="BundleWriteOptions.Default"/>.</param>
@@ -428,10 +608,16 @@ public sealed class SingleFileBundle : IDisposable, IAsyncDisposable
     /// <exception cref="ObjectDisposedException">The bundle is disposed.</exception>
     /// <exception cref="InvalidDataException">The stored data of an entry does not match its declared size.</exception>
     /// <exception cref="InvalidOperationException">
-    /// The bundle has no entries, or <see cref="BundleWriteOptions.Compression"/> is <see cref="BundleCompression.Compress"/>, the bundle format supports
-    /// compression and the application is framework-dependent.
+    /// The bundle has no entries, <see cref="BundleWriteOptions.Compression"/> is <see cref="BundleCompression.Compress"/>, the bundle format
+    /// supports compression and the application is framework-dependent, or the macOS executable cannot hold the bundle and its code signature:
+    /// they would end beyond 4 GiB, the load commands have no room for a code signature command, or no signing identifier is known because
+    /// <see cref="BundleWriteOptions.MacOSCodeSignIdentifier"/> is <see langword="null"/> and the bundle was created or the executable is not
+    /// signed.
     /// </exception>
-    /// <exception cref="NotSupportedException">The application host is a macOS executable, which would have to be signed again.</exception>
+    /// <exception cref="NotSupportedException">
+    /// The application host is a macOS executable whose load commands do not have the layout the .NET SDK requires, or whose bundle does not
+    /// follow the start of its string table.
+    /// </exception>
     public void Save(Stream destination, BundleWriteOptions? options = null)
     {
         SaveCoreAsync(useAsync: false, destination, options, CancellationToken.None).GetAwaiter().GetResult();
@@ -599,7 +785,7 @@ public sealed class SingleFileBundle : IDisposable, IAsyncDisposable
             throw new IOException("The bundle cannot be saved over the file it was opened from; save it to another path.");
 
         string tempPath = Path.Combine(Path.GetDirectoryName(fullPath)!, $".{Path.GetFileName(fullPath)}.{Guid.NewGuid():N}.tmp");
-        var plan = await BundleWriter.PlanAsync(useAsync, _source, _layout, _entries, IsModified, options, cancellationToken).ConfigureAwait(false);
+        var plan = await BundleWriter.PlanAsync(useAsync, _source, _layout, _entries, IsModified, options, Path.GetFileName(fullPath), cancellationToken).ConfigureAwait(false);
 
         try
         {
@@ -653,8 +839,8 @@ public sealed class SingleFileBundle : IDisposable, IAsyncDisposable
     {
         ThrowIfDisposed();
 
-        if (_layout.Host.Kind == HostKind.MachO)
-            throw new NotSupportedException("Saving macOS executables is not supported: the executable would have to be signed again.");
+        if (_layout.Host.Kind == HostKind.MachO && _layout.Host.MachO == null)
+            throw new NotSupportedException("The load commands of the macOS executable do not have the layout the .NET SDK requires, so the bundle cannot be saved.");
 
         // The .NET host refuses to run a bundle without files.
         if (_entries.Count == 0)
@@ -683,9 +869,12 @@ public sealed class SingleFileBundle : IDisposable, IAsyncDisposable
     public IReadOnlyList<BundleEntry> Entries { get; }
 
     /// <summary>
-    /// Gets the manifest header of the opened bundle.
+    /// Gets the manifest header of the opened or created bundle.
     /// </summary>
-    /// <remarks>The header describes the opened file; saving writes a new identifier when content changed, but does not update this instance.</remarks>
+    /// <remarks>
+    /// The header describes the opened file, or the header a bundle was created with; saving writes a new identifier when content changed, but does
+    /// not update this instance.
+    /// </remarks>
     public BundleHeader Header => _layout.Manifest.Header;
 
     /// <summary>

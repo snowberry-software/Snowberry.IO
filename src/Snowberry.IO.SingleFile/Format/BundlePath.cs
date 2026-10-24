@@ -87,8 +87,10 @@ internal static class BundlePath
     /// </summary>
     /// <remarks>
     /// Rejects empty, rooted (on any platform) and NUL-containing paths, paths that resolve to <paramref name="rootDirectory"/> or outside of it,
-    /// and paths that resolve to a directory. On Windows it also rejects <c>:</c> (alternate data streams), segments ending in <c>.</c> or a space,
-    /// which Windows silently trims, and reserved device names such as <c>NUL</c>, <c>con.txt</c> or <c>COM1.dll</c>. Returns <see langword="false"/> instead of throwing when a path cannot be resolved.
+    /// and paths that resolve to a directory. Paths that Windows maps to a device, such as <c>NUL</c>, resolve outside of the directory and are
+    /// rejected; which names Windows maps depends on its version, for example <c>con.txt</c> is a device before Windows 11 and a file since. On
+    /// Windows it also rejects <c>:</c> (alternate data streams) and segments ending in <c>.</c> or a space, which Windows silently trims.
+    /// Returns <see langword="false"/> instead of throwing when a path cannot be resolved.
     /// </remarks>
     /// <param name="rootDirectory">The directory extracted files must stay inside of.</param>
     /// <param name="relativePath">The untrusted entry path.</param>
@@ -142,37 +144,12 @@ internal static class BundlePath
 
         var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
+        // Windows resolves a device name to a device path such as \\.\NUL, which is not under the root.
         if (Path.EndsInDirectorySeparator(candidate) || !candidate.StartsWith(rootPrefix, comparison))
             return false;
 
         fullPath = candidate;
         return true;
-    }
-
-    /// <summary>
-    /// Determines whether Windows maps <paramref name="segment"/> to a device, such as <c>NUL</c>, <c>con.txt</c> or <c>COM1.dll</c>.
-    /// </summary>
-    private static bool IsReservedDeviceName(string segment)
-    {
-        int extension = segment.IndexOf('.');
-        var name = (extension >= 0 ? segment.AsSpan(0, extension) : segment.AsSpan()).TrimEnd(' ');
-
-        if (name.Length == 3)
-        {
-            return name.Equals("CON", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("PRN", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("AUX", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("NUL", StringComparison.OrdinalIgnoreCase);
-        }
-
-        if (name.Length == 4 && (name.StartsWith("COM", StringComparison.OrdinalIgnoreCase) || name.StartsWith("LPT", StringComparison.OrdinalIgnoreCase)))
-        {
-            // Windows also treats the superscript digits 1 to 3 as port numbers.
-            char number = name[3];
-            return char.IsAsciiDigit(number) || number is '¹' or '²' or '³';
-        }
-
-        return false;
     }
 
     private static bool IsValidWindowsPath(string relativePath)
@@ -183,9 +160,6 @@ internal static class BundlePath
         foreach (string segment in relativePath.Split('/', '\\'))
         {
             if (segment.Length > 0 && (segment[^1] == '.' || segment[^1] == ' '))
-                return false;
-
-            if (IsReservedDeviceName(segment))
                 return false;
         }
 

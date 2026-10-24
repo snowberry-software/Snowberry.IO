@@ -13,7 +13,7 @@
         <LangVersion>latest</LangVersion>
 
         <!-- Package -->
-        <Description>This package includes common utilities that are utilized by the full package.</Description>
+        <Description>The shared contracts and primitives of Snowberry.IO: the endian reader and writer interfaces, BinaryEndianConverter for reading and writing values in either byte order, the Sha1 value type and alignment helpers.</Description>
 
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>

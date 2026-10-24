@@ -89,18 +89,18 @@ The writer has no such layer: `EndianStreamWriter` derives from `BinaryWriter` a
 
 ## Core Types
 
-| Type                    | Purpose                                                                                                                  |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `IEndianReader`         | The reader contract, defined in Snowberry.IO.Common.                                                                     |
-| `BaseEndianReader`      | Derives from `BinaryReader` and implements `IEndianReader` with the string, region view and try-read logic.              |
-| `EndianStreamReader`    | Reads from any `Stream`, including non-seekable ones; disposes it unless `KeepStreamOpen` is set.                        |
-| `Win32ProcessReader`    | Reads the memory of a Windows process.                                                                                   |
-| `IEndianWriter`         | The writer contract, defined in Snowberry.IO.Common.                                                                     |
-| `EndianStreamWriter`    | Writes to a `Stream`; derives from `BinaryWriter` and implements `IEndianWriter`.                                        |
-| `BinaryEndianConverter` | Converts spans of bytes to values, see [Endian Converter](#endian-converter).                                            |
-| `BinaryUtils`           | `ApplyAlignment` and `CalculatePadding` compute the aligned position or the padding for a power-of-two alignment.        |
-| `RegionRange`           | A region given as `StartPosition` and `Size`, accepted by `EnableRegionView(RegionRange)`.                               |
-| `Sha1`                  | A 20-byte SHA-1 hash value type; built from bytes or a 40-character hex string, written out with `TryWriteBytes`.        |
+| Type                    | Purpose                                                                                                           |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `IEndianReader`         | The reader contract, defined in Snowberry.IO.Common.                                                              |
+| `BaseEndianReader`      | Derives from `BinaryReader` and implements `IEndianReader` with the string, region view and try-read logic.       |
+| `EndianStreamReader`    | Reads from any `Stream`, including non-seekable ones; disposes it unless `KeepStreamOpen` is set.                 |
+| `Win32ProcessReader`    | Reads the memory of a Windows process.                                                                            |
+| `IEndianWriter`         | The writer contract, defined in Snowberry.IO.Common.                                                              |
+| `EndianStreamWriter`    | Writes to a `Stream`; derives from `BinaryWriter` and implements `IEndianWriter`.                                 |
+| `BinaryEndianConverter` | Converts between spans of bytes and values, see [Endian Converter](#endian-converter).                            |
+| `BinaryUtils`           | `ApplyAlignment` and `CalculatePadding` compute the aligned position or the padding for a power-of-two alignment. |
+| `RegionRange`           | A region given as `StartPosition` and `Size`, accepted by `EnableRegionView(RegionRange)`.                        |
+| `Sha1`                  | A 20-byte SHA-1 hash value type; built from bytes or a 40-character hex string, written out with `TryWriteBytes`. |
 
 `EndianStreamReader(stream, analyzer, bufferSize, encoding)` and `EndianStreamWriter(stream, keepStreamOpen, encoding)` take an explicit `Encoding`; the shorter constructors use UTF-8 without a byte order mark.
 
@@ -121,13 +121,14 @@ reader.DisableRegionView();
 
 ## Endian Converter
 
-`BinaryEndianConverter` decodes values from a `ReadOnlySpan<byte>`, optionally at an offset. Every overload checks that enough bytes are available and throws `ArgumentOutOfRangeException` otherwise. The single-precision method is `ToFloat`, and `ToGuid` is only available with an offset.
+`BinaryEndianConverter` decodes values from a `ReadOnlySpan<byte>` with the `To…` methods and encodes them into a `Span<byte>` with the `Write…` methods, optionally at an offset. Every overload checks that enough bytes are available and throws `ArgumentOutOfRangeException` otherwise, without writing anything. The single-precision methods are `ToFloat` and `WriteFloat`, and `ToGuid` and `WriteGuid` are only available with an offset.
 
 ```cs
 byte[] buffer = [0x00, 0x00, 0x00, 0x2A, 0x01, 0x02];
 
 int value = BinaryEndianConverter.ToInt32(buffer, EndianType.BIG);              // 42
 ushort tail = BinaryEndianConverter.ToUInt16(buffer, offset: 4, EndianType.BIG); // 0x0102
+BinaryEndianConverter.WriteUInt16(buffer, 4, 0x0304, EndianType.LITTLE);        // buffer ends with 04 03
 ```
 
 ## Custom Analyzer
@@ -200,7 +201,7 @@ public sealed class XorAnalyzer(byte key) : Analyzer
 
 ## Related Packages
 
-| Package                                                                                                               | Purpose                                                                        |
-| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| [Snowberry.IO.Common](https://github.com/snowberry-software/Snowberry.IO/tree/master/src/Snowberry.IO.Common)         | Reader and writer contracts, `BinaryEndianConverter`, `Sha1` and `EndianType`. |
-| [Snowberry.IO.SingleFile](https://github.com/snowberry-software/Snowberry.IO/tree/master/src/Snowberry.IO.SingleFile) | Reads and modifies bundles of single-file published .NET applications.         |
+| Package                                                                                                               | Purpose                                                                         |
+| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| [Snowberry.IO.Common](https://github.com/snowberry-software/Snowberry.IO/tree/master/src/Snowberry.IO.Common)         | Reader and writer contracts, `BinaryEndianConverter`, `Sha1` and `EndianType`.  |
+| [Snowberry.IO.SingleFile](https://github.com/snowberry-software/Snowberry.IO/tree/master/src/Snowberry.IO.SingleFile) | Reads, modifies and creates bundles of single-file published .NET applications. |

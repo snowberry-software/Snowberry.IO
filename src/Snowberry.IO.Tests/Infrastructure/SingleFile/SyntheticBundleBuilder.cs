@@ -90,6 +90,58 @@ internal static class SyntheticBundleBuilder
         return BuildCore(host, manifestOffsetField, 6, files, "originalId00", BundleFlags.None, assemblyAlignment: 4096);
     }
 
+    /// <summary>
+    /// Creates a fake application host of <see cref="c_HostLength"/> bytes that contains the bundle signature after a manifest offset of
+    /// <c>0</c>, like an application host template before the .NET SDK bundles files into it.
+    /// </summary>
+    /// <param name="kind">The application host format.</param>
+    public static byte[] CreateHost(TestHost kind)
+    {
+        byte[] host = new byte[c_HostLength];
+        var span = host.AsSpan();
+
+        switch (kind)
+        {
+            case TestHost.Pe:
+                span[0] = (byte)'M';
+                span[1] = (byte)'Z';
+                BinaryPrimitives.WriteInt32LittleEndian(span[0x3C..], c_PeHeaderOffset);
+                BinaryPrimitives.WriteUInt32LittleEndian(span[c_PeHeaderOffset..], 0x00004550);       // "PE\0\0"
+                BinaryPrimitives.WriteUInt16LittleEndian(span[(c_PeHeaderOffset + 6)..], 1);          // NumberOfSections
+                BinaryPrimitives.WriteUInt16LittleEndian(span[(c_PeHeaderOffset + 20)..], 0xF0);      // SizeOfOptionalHeader
+                BinaryPrimitives.WriteUInt16LittleEndian(span[c_PeOptionalHeaderOffset..], 0x20B);    // PE32+
+                int section = c_PeOptionalHeaderOffset + 0xF0;
+                BinaryPrimitives.WriteUInt32LittleEndian(span[(section + 16)..], 100);                // SizeOfRawData
+                BinaryPrimitives.WriteUInt32LittleEndian(span[(section + 20)..], c_PeImageEnd - 100); // PointerToRawData
+                break;
+
+            case TestHost.Elf:
+                span[0] = 0x7F;
+                span[1] = (byte)'E';
+                span[2] = (byte)'L';
+                span[3] = (byte)'F';
+                span[4] = 2; // 64-bit
+                span[5] = 1; // little-endian
+                BinaryPrimitives.WriteUInt16LittleEndian(span[18..], 0x3E);  // EM_X86_64
+                BinaryPrimitives.WriteUInt64LittleEndian(span[0x28..], 100); // e_shoff
+                BinaryPrimitives.WriteUInt16LittleEndian(span[0x3A..], 64);  // e_shentsize
+                BinaryPrimitives.WriteUInt16LittleEndian(span[0x3C..], 1);   // e_shnum
+                break;
+
+            case TestHost.MachO:
+                BinaryPrimitives.WriteUInt32LittleEndian(span, 0xFEEDFACF);
+                BinaryPrimitives.WriteUInt32LittleEndian(span[4..], 0x0100000C); // CPU_TYPE_ARM64
+                break;
+
+            case TestHost.UniversalMachO:
+                BinaryPrimitives.WriteUInt32BigEndian(span, 0xCAFEBABE);
+                break;
+        }
+
+        s_BundleSignature.CopyTo(host, c_ManifestOffsetField + 8);
+        return host;
+    }
+
     public static byte[] Deflate(byte[] data)
     {
         using var compressed = new MemoryStream();
@@ -142,53 +194,6 @@ internal static class SyntheticBundleBuilder
 
         WriteManifest(writer, majorVersion, records, bundleId, flags, manifestOffsetField: manifestOffsetField);
         return stream.ToArray();
-    }
-
-    private static byte[] CreateHost(TestHost kind)
-    {
-        byte[] host = new byte[c_HostLength];
-        var span = host.AsSpan();
-
-        switch (kind)
-        {
-            case TestHost.Pe:
-                span[0] = (byte)'M';
-                span[1] = (byte)'Z';
-                BinaryPrimitives.WriteInt32LittleEndian(span[0x3C..], c_PeHeaderOffset);
-                BinaryPrimitives.WriteUInt32LittleEndian(span[c_PeHeaderOffset..], 0x00004550);       // "PE\0\0"
-                BinaryPrimitives.WriteUInt16LittleEndian(span[(c_PeHeaderOffset + 6)..], 1);          // NumberOfSections
-                BinaryPrimitives.WriteUInt16LittleEndian(span[(c_PeHeaderOffset + 20)..], 0xF0);      // SizeOfOptionalHeader
-                BinaryPrimitives.WriteUInt16LittleEndian(span[c_PeOptionalHeaderOffset..], 0x20B);    // PE32+
-                int section = c_PeOptionalHeaderOffset + 0xF0;
-                BinaryPrimitives.WriteUInt32LittleEndian(span[(section + 16)..], 100);                // SizeOfRawData
-                BinaryPrimitives.WriteUInt32LittleEndian(span[(section + 20)..], c_PeImageEnd - 100); // PointerToRawData
-                break;
-
-            case TestHost.Elf:
-                span[0] = 0x7F;
-                span[1] = (byte)'E';
-                span[2] = (byte)'L';
-                span[3] = (byte)'F';
-                span[4] = 2; // 64-bit
-                span[5] = 1; // little-endian
-                BinaryPrimitives.WriteUInt16LittleEndian(span[18..], 0x3E);  // EM_X86_64
-                BinaryPrimitives.WriteUInt64LittleEndian(span[0x28..], 100); // e_shoff
-                BinaryPrimitives.WriteUInt16LittleEndian(span[0x3A..], 64);  // e_shentsize
-                BinaryPrimitives.WriteUInt16LittleEndian(span[0x3C..], 1);   // e_shnum
-                break;
-
-            case TestHost.MachO:
-                BinaryPrimitives.WriteUInt32LittleEndian(span, 0xFEEDFACF);
-                BinaryPrimitives.WriteUInt32LittleEndian(span[4..], 0x0100000C); // CPU_TYPE_ARM64
-                break;
-
-            case TestHost.UniversalMachO:
-                BinaryPrimitives.WriteUInt32BigEndian(span, 0xCAFEBABE);
-                break;
-        }
-
-        s_BundleSignature.CopyTo(host, c_ManifestOffsetField + 8);
-        return host;
     }
 
     private static void WriteManifest(BinaryWriter writer, uint majorVersion, IReadOnlyList<RawEntry> entries, string bundleId, BundleFlags flags, int? fileCountOverride = null, int manifestOffsetField = c_ManifestOffsetField)
