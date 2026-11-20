@@ -15,7 +15,9 @@ namespace Snowberry.IO.SingleFile.Content;
 /// <param name="ownsSource">Whether disposing the data disposes <paramref name="source"/>.</param>
 internal sealed class EntryData(BundleSource source, long offset, long size, long compressedSize, string entryName, bool ownsSource) : IDisposable, IAsyncDisposable
 {
+#if !NET11_0_OR_GREATER
     private const int c_CompressedBufferSize = 64 * 1024;
+#endif
     private const string c_ContentObjectName = "entry content";
 
     /// <summary>
@@ -100,9 +102,15 @@ internal sealed class EntryData(BundleSource source, long offset, long size, lon
         if (!IsCompressed)
             return new RangeReadStream(source, offset, size, CreateTruncatedException);
 
+#if NET11_0_OR_GREATER
+        // The decoder stream reads the compressed data in large chunks itself.
+        var compressed = new RangeReadStream(source, offset, compressedSize);
+        return new ExactLengthStream(new DeflateDecoderStream(compressed), size, entryName);
+#else
         // DeflateStream reads in small chunks; buffering turns them into fewer, larger positional reads.
         var compressed = new RangeReadStream(source, offset, compressedSize, bufferSize: (int)Math.Min(compressedSize, c_CompressedBufferSize));
         return new ExactLengthStream(new DeflateStream(compressed, CompressionMode.Decompress), size, entryName);
+#endif
     }
 
     /// <summary>

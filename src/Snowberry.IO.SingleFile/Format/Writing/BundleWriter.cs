@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.IO.Compression;
 using System.Security.Cryptography;
 using Snowberry.IO.Common;
 using Snowberry.IO.SingleFile.Content;
@@ -96,7 +95,7 @@ internal static class BundleWriter
         var compressionMemory = new MemoryBudget(options.MaxCompressionMemory);
         var spillFiles = new SpillFilePool(useAsync);
         bool hashInBackground = options.MaxDegreeOfParallelism != 1;
-        var plan = new BundlePlan(source, layout, contentChanged, new List<PlannedEntry>(entries.Count), spillFiles)
+        var plan = new BundlePlan(source, layout, contentChanged, [with(entries.Count)], spillFiles)
         {
             Memory = compressionMemory,
             MemoryLimit = options.MaxCompressionMemory,
@@ -370,26 +369,16 @@ internal static class BundleWriter
 
         try
         {
-            var deflate = new DeflateStream(buffer, options.CompressionLevel, leaveOpen: true);
+            var content = planned.Entry.Data.Open();
 
             try
             {
-                var content = planned.Entry.Data.Open();
-
-                try
-                {
-                    long read = await StreamCopy.CopyAsync(useAsync, content, deflate, hash, cancellationToken).ConfigureAwait(false);
-                    planned.EnsureContentLength(read);
-                }
-                finally
-                {
-                    await StreamCopy.DisposeAsync(useAsync, content).ConfigureAwait(false);
-                }
+                long read = await DeflateCompression.CompressAsync(useAsync, options.CompressionLevel, content, buffer, hash, cancellationToken).ConfigureAwait(false);
+                planned.EnsureContentLength(read);
             }
             finally
             {
-                // Disposing writes the final deflate block.
-                await StreamCopy.DisposeAsync(useAsync, deflate).ConfigureAwait(false);
+                await StreamCopy.DisposeAsync(useAsync, content).ConfigureAwait(false);
             }
         }
         catch
