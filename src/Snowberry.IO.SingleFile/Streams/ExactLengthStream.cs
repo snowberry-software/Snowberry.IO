@@ -6,6 +6,9 @@ namespace Snowberry.IO.SingleFile.Streams;
 /// A read-only stream that yields exactly <paramref name="length"/> bytes from an inner stream, and fails if the inner stream
 /// produces fewer or more bytes. Used to bound decompression of untrusted entries.
 /// </summary>
+/// <param name="inner">The stream to read from; it is disposed when this stream is disposed.</param>
+/// <param name="length">The exact number of bytes <paramref name="inner"/> must produce.</param>
+/// <param name="entryName">The name of the bundle entry, used in error messages.</param>
 internal sealed class ExactLengthStream(Stream inner, long length, string entryName) : Stream
 {
     private long _position;
