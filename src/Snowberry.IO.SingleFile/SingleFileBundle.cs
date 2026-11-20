@@ -44,7 +44,7 @@ public sealed class SingleFileBundle : IDisposable, IAsyncDisposable
         _layout = layout;
 
         var manifestEntries = layout.Manifest.Entries;
-        _entries = new List<BundleEntry>(manifestEntries.Count);
+        _entries = [with(manifestEntries.Count)];
         _entriesByPath = new Dictionary<string, BundleEntry>(manifestEntries.Count, StringComparer.Ordinal);
 
         foreach (var record in manifestEntries)

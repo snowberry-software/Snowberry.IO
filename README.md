@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/github/license/snowberry-software/Snowberry.IO)](https://github.com/snowberry-software/Snowberry.IO/blob/master/LICENSE)
 [![NuGet Version](https://img.shields.io/nuget/v/Snowberry.IO.svg?logo=nuget)](https://www.nuget.org/packages/Snowberry.IO/)
 
-**An endian-aware binary reader and writer for .NET.** Snowberry.IO extends `BinaryReader` and `BinaryWriter` and reads and writes primitives, strings and `Guid` values in little- or big-endian order, plus SHA-1 values, from any `Stream`. It also restricts reads to a region of the stream, scans for byte signatures and can read the memory of another Windows process. It targets .NET 10 plus .NET Standard 2.1 and 2.0, and builds on [Snowberry.IO.Common](https://github.com/snowberry-software/Snowberry.IO/tree/master/src/Snowberry.IO.Common).
+**An endian-aware binary reader and writer for .NET.** Snowberry.IO extends `BinaryReader` and `BinaryWriter` and reads and writes primitives, strings and `Guid` values in little- or big-endian order, plus SHA-1 values, from any `Stream`. It also restricts reads to a region of the stream, scans for byte signatures and can read the memory of another Windows process. It targets .NET 11 and .NET 10 plus .NET Standard 2.1 and 2.0, and builds on [Snowberry.IO.Common](https://github.com/snowberry-software/Snowberry.IO/tree/master/src/Snowberry.IO.Common).
 
 ## Table of Contents
 
@@ -58,7 +58,7 @@ string text = reader.ReadCString();
 
 ## Top Features at a Glance
 
-- **Both byte orders for every primitive.** The readers are `BinaryReader`s, so `ReadInt32()` and the other inherited reads stay little-endian; the overloads such as `ReadInt32(EndianType.BIG)` and `Write(value, EndianType.BIG)` pick the byte order for 16-, 32- and 64-bit integers, `float`, `double`, `Guid`, and `Half` on the .NET 10 build. The endian-aware `Write` overloads return the writer, so calls chain.
+- **Both byte orders for every primitive.** The readers are `BinaryReader`s, so `ReadInt32()` and the other inherited reads stay little-endian; the overloads such as `ReadInt32(EndianType.BIG)` and `Write(value, EndianType.BIG)` pick the byte order for 16-, 32- and 64-bit integers, `float`, `double`, `Guid`, and `Half` on the .NET 11 and .NET 10 builds. The endian-aware `Write` overloads return the writer, so calls chain.
 - **Strings in every common layout.** Zero-terminated (`ReadCString`/`WriteCString`), fixed-size zero-terminated (`ReadSizedCString`/`WriteSizedCString`), 7-bit length-prefixed (`ReadString`), lines (`ReadLine`/`WriteLine`) and raw characters without a prefix or terminator (`WriteStringCharacters`), for UTF-8, UTF-16 and UTF-32.
 - **Non-throwing reads.** `TryReadInt32`, `TryReadGuid`, `TryReadSha1` and the other `TryRead*` methods return `false` instead of throwing at the end of the data, and restore the position when the stream can seek. `ReadByteSafe` returns `-1` at the end instead of throwing.
 - **Region views.** `EnableRegionView(20..80)` makes a slice of the stream look like the whole stream: `Position` and `Length` become relative, and reads stop at the region end.
@@ -181,7 +181,7 @@ public sealed class XorAnalyzer(byte key) : Analyzer
 | UInt32  | Little, Big                     |
 | Int64   | Little, Big                     |
 | UInt64  | Little, Big                     |
-| Half    | Little, Big (.NET 10 build)     |
+| Half    | Little, Big (.NET 10+ builds)   |
 | Single  | Little, Big                     |
 | Double  | Little, Big                     |
 | Decimal | Little (inherited)              |

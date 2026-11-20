@@ -21,8 +21,8 @@ public class MachOImageTests
     private const int c_CodeSignature = 424;
     private const int c_CommandsEnd = 440;
 
-    public static TheoryData<string> InvalidLayouts => new()
-    {
+    public static TheoryData<string> InvalidLayouts =>
+    [
         "truncated header",
         "commands beyond header",
         "zero command size",
@@ -36,7 +36,7 @@ public class MachOImageTests
         "too many sections",
         "commands reach __LINKEDIT",
         "file offset beyond long range"
-    };
+    ];
 
     [Theory]
     [MemberData(nameof(InvalidLayouts))]

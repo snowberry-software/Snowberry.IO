@@ -19,7 +19,7 @@ public static class BenchmarkConfig
     /// </summary>
     /// <remarks>
     /// No job is declared, so the job and runtimes come from the command line (for example <c>--job short</c> or
-    /// <c>--runtimes net10.0 net48</c>), falling back to the default job.
+    /// <c>--runtimes net11.0 net10.0 net48</c>), falling back to the default job.
     /// </remarks>
     /// <returns>The configuration to pass to the benchmark runner.</returns>
     public static IConfig Create()

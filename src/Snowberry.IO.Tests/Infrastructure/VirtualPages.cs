@@ -46,7 +46,7 @@ internal sealed unsafe class VirtualPages : IDisposable
         if (address == IntPtr.Zero)
             throw new Win32Exception(Marshal.GetLastWin32Error());
 
-        var pages = new VirtualPages((long)address, pageCount);
+        var pages = new VirtualPages(address, pageCount);
         pages._allocations.Add(address);
         pages.Fill(0, pageCount);
         return pages;
@@ -75,7 +75,7 @@ internal sealed unsafe class VirtualPages : IDisposable
 
             if (first == span && second == span + gapSize)
             {
-                var pages = new VirtualPages((long)span, (gapSize / c_PageSize) + 1);
+                var pages = new VirtualPages(span, (gapSize / c_PageSize) + 1);
                 pages._allocations.Add(first);
                 pages._allocations.Add(second);
                 pages.Fill(0, 1);
@@ -95,7 +95,7 @@ internal sealed unsafe class VirtualPages : IDisposable
 
     public void Dispose()
     {
-        foreach (nint allocation in _allocations)
+        foreach (var allocation in _allocations)
             PInvoke.VirtualFree((void*)allocation, 0, VIRTUAL_FREE_TYPE.MEM_RELEASE);
 
         _allocations.Clear();

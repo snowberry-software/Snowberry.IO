@@ -28,15 +28,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            dotnet: "10.0.x"
+            framework: "net11.0"
+          - os: ubuntu-latest
             framework: "net10.0"
           # The Win32 process reader tests only run on Windows.
           - os: windows-latest
-            dotnet: "10.0.x"
+            framework: "net11.0"
+          - os: windows-latest
             framework: "net10.0"
           # .NET Framework runs the netstandard2.0 build and only exists on Windows.
           - os: windows-latest
-            dotnet: "10.0.x"
             framework: "net48"
 
     defaults:
@@ -47,10 +48,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup .NET ${{ matrix.dotnet }}
+      # src/global.json requires the .NET 11 SDK, which builds every target but does not carry the .NET 10 runtime the net10.0
+      # tests run on.
+      - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ matrix.dotnet }}
+          dotnet-version: |
+            10.0.x
+            11.0.x
 
       - name: Restore
         run: dotnet restore
@@ -77,12 +82,18 @@ jobs:
           path: packages/*.nupkg
           if-no-files-found: error
 
+  # nuget.org Trusted Publishing: no long-lived API key. NuGet/login exchanges the job's GitHub OIDC token for a short-lived (1 hour)
+  # key. The nuget.org policy must match this repository, this workflow file (dotnet.yml) and the release environment.
   deploy:
     name: Publish to NuGet
     runs-on: ubuntu-latest
     needs: build
     # Publish for a tag starting with v, after every test passed.
     if: startsWith(github.ref, 'refs/tags/v')
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Download packages
         uses: actions/download-artifact@v8
@@ -105,5 +116,14 @@ jobs:
             fi
           done
 
+      # Log in after the version check so the short-lived key is fresh for the push.
+      - name: NuGet login
+        id: nuget-login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       - name: Publish
-        run: dotnet nuget push "packages/*.nupkg" --api-key "${{ secrets.NUGET_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        env:
+          NUGET_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push "packages/*.nupkg" --api-key "$NUGET_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate

@@ -2,7 +2,7 @@
 
 [![NuGet Version](https://img.shields.io/nuget/v/Snowberry.IO.Common.svg?logo=nuget)](https://www.nuget.org/packages/Snowberry.IO.Common/)
 
-**The shared contracts and primitives of Snowberry.IO.** This package defines the `IEndianReader` and `IEndianWriter` interfaces, the `EndianType` byte order, the `Sha1` value type, `RegionRange`, the `Analyzer` base class, `BinaryEndianConverter` and the `BinaryUtils` alignment helpers. Reference it directly when a library only needs the contracts or the converter; use [Snowberry.IO](https://github.com/snowberry-software/Snowberry.IO) for the stream-based implementations. It targets .NET 10 plus .NET Standard 2.1 and 2.0; the .NET Standard 2.0 build depends on [System.Memory](https://www.nuget.org/packages/System.Memory/) and [IndexRange](https://www.nuget.org/packages/IndexRange/) for spans and `Range`.
+**The shared contracts and primitives of Snowberry.IO.** This package defines the `IEndianReader` and `IEndianWriter` interfaces, the `EndianType` byte order, the `Sha1` value type, `RegionRange`, the `Analyzer` base class, `BinaryEndianConverter` and the `BinaryUtils` alignment helpers. Reference it directly when a library only needs the contracts or the converter; use [Snowberry.IO](https://github.com/snowberry-software/Snowberry.IO) for the stream-based implementations. It targets .NET 11 and .NET 10 plus .NET Standard 2.1 and 2.0; the .NET Standard 2.0 build depends on [System.Memory](https://www.nuget.org/packages/System.Memory/) and [IndexRange](https://www.nuget.org/packages/IndexRange/) for spans and `Range`.
 
 ## Table of Contents
 
@@ -80,7 +80,7 @@ For worked examples of region views and a custom analyzer, see [Region Views](ht
 - **`Range` converts to `RegionRange` only when both ends count from the start.** `(RegionRange)(20..80)` and `RegionRange.ToRegionRange(20..80)` work, but `^16..` and open ranges such as `20..` (whose end is `^0`) throw `ArgumentException`. Pass those to `IEndianReader.EnableRegionView(Range)`, which resolves them against the reader's length.
 - **`Sha1` components are not the SHA-1 state words.** Each component A to E is the little-endian reading of a 4-byte slice of the digest, not H0 to H4. Compare hashes with `==`, `ToString()` or the bytes from `TryWriteBytes`, not with hand-built components.
 - **`ModifiesBytes` must stay `true` if the analyzer changes bytes.** Null-terminated string and line reads search for the terminator after the analyzer has run; returning `false` lets them search first and report bytes in larger pieces, so an analyzer that decrypts would be searched before decryption.
-- **`Half` is only on the .NET 10 build.** `ReadHalf` and `Write(Half)` are not part of the interfaces in the .NET Standard builds.
+- **`Half` is only on the .NET 11 and .NET 10 builds.** `ReadHalf` and `Write(Half)` are not part of the interfaces in the .NET Standard builds.
 
 ## Related Packages
 

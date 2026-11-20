@@ -56,6 +56,8 @@ dlldata.c
 
 # Benchmark Results
 BenchmarkDotNet.Artifacts/
+# BenchmarkDotNet builds the generated benchmark projects here
+.bdn/
 
 # .NET Core
 project.lock.json

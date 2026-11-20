@@ -4,18 +4,18 @@ using Snowberry.IO.Benchmarks.Config;
 namespace Snowberry.IO.Benchmarks;
 
 // Usage (from src/):
-//   dotnet run -c Release -f net10.0 --project Snowberry.IO.Benchmarks -- --filter *
-//   dotnet run -c Release -f net10.0 --project Snowberry.IO.Benchmarks -- --filter *Reader* --job short
-//   dotnet run -c Release -f net10.0 --project Snowberry.IO.Benchmarks -- --filter *Convert* --runtimes net10.0 net48
-//   dotnet run -c Release -f net10.0 --project Snowberry.IO.Benchmarks -- --list flat
+//   dotnet run -c Release -f net11.0 --project Snowberry.IO.Benchmarks -- --filter *
+//   dotnet run -c Release -f net11.0 --project Snowberry.IO.Benchmarks -- --filter *Reader* --job short
+//   dotnet run -c Release -f net11.0 --project Snowberry.IO.Benchmarks -- --filter *Convert* --runtimes net11.0 net10.0 net48
+//   dotnet run -c Release -f net11.0 --project Snowberry.IO.Benchmarks -- --list flat
 //
-// --runtimes net10.0 net48 runs every selected benchmark once per runtime, which measures the net10.0 build of Snowberry.IO next to
-// its netstandard2.1 build (on .NET 8) and its netstandard2.0 build (on .NET Framework). The SingleFile benchmarks only exist for net10.0,
+// --runtimes net11.0 net10.0 net48 runs every selected benchmark once per runtime, which measures the net11.0 build of Snowberry.IO next to
+// its net10.0 build and its netstandard2.0 build (on .NET Framework). The SingleFile benchmarks only exist for the .NET targets,
 // so filter them out when net48 is included (for example --filter *Common* *Reader* *Writer* *Process*). Use --job dry to check
 // that benchmarks run without measuring them.
 //
-// BenchmarkDotNet compiles the code that runs a benchmark for every selected runtime from the benchmarks it finds in the net10.0 build, so
-// every benchmark method must exist on every target framework: put #if inside a benchmark method, never around one.
+// BenchmarkDotNet compiles the code that runs a benchmark for every selected runtime from the benchmarks it finds in the build it is
+// started from, so every benchmark method must exist on every target framework: put #if inside a benchmark method, never around one.
 
 /// <summary>
 /// The benchmark entry point.
