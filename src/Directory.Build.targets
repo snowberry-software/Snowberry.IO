@@ -1,0 +1,9 @@
+<Project>
+    <!--
+        Runtime async: on .NET 11 and later, async methods are compiled for the runtime's own async support instead of
+        compiler-generated state machines. It is still a preview feature of .NET 11.
+    -->
+    <PropertyGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETCoreApp' And $([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net11.0'))">
+        <Features>$(Features);runtime-async=on</Features>
+    </PropertyGroup>
+</Project>

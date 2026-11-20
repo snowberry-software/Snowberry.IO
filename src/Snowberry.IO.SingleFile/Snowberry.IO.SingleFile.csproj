@@ -3,9 +3,10 @@
     <Import Project="../NuGetPackage.props" />
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFrameworks>net11.0;net10.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
 
         <Description>Reads, extracts, modifies and creates the bundles of single-file published .NET applications, including signed macOS executables.</Description>
         <PackageTags>single-file single-file-publish bundle apphost dotnet</PackageTags>
